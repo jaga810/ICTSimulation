@@ -1,0 +1,7 @@
+/.idea/
+/tmp/
+/bin/
+*.test
+*.swp
+ICTSimulation.iml
+src/ictsimulationpackage/Hello.java

@@ -6,14 +6,17 @@ public class Call {
 	// ある１つの呼のデータ
 	static ArrayList<Call> limitList[];// 有る時間に終了する呼のリスト
 	static int sumHoldTime[];
+	//区内で発生した呼の生成数と呼損数（累計：時間全体で）
 	static long areaKosu[] = new long[102];
+	static long exLossKosu[] = new long[102];
+	//区外で発生した呼の生成数と呼損数（累計）
 	static long exKosu[] = new long[102];
 	static long areaLossKosu[] = new long[102];
-	static long exLossKosu[] = new long[102];
+	static long timeLength;
+
 	Building start;
 	Building dest;
 	int EndTime;
-	static long timeLength;
 	ArrayList<Link> LinkList;
 	boolean success = false;
 
@@ -60,6 +63,7 @@ public class Call {
 			}
 		}
 
+		//呼が生成に成功した場合
 		if (success && EndTime < timeLength) {
 			// System.out.println("EndTime:" + EndTime);
 			limitList[EndTime].add(this);
@@ -81,7 +85,8 @@ public class Call {
 				}
 			}
 		} else if (EndTime < timeLength) {
-//			// 呼の発生種別をリンクに選り分ける
+			//呼の生成に失敗した場合
+			// 呼の発生種別をリンクに選り分ける
 //			if (start.areaBldg != null && dest.areaBldg != null && start != dest) {
 //				if ((start.areaBldg == dest.areaBldg)) {
 //					for (Link ln : LinkList) {

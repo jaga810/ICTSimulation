@@ -12,7 +12,6 @@ public class KosuHairetsu extends ArrayList{
 	// public static void main(String argv[]){
 	static ArrayList<ArrayList<String>> ExceltoHairetsu() {
 		//0発信区ー＞1発信ビルー＞2着信区ー＞3着信ビルー＞4以降..呼数が１t分のリスト(全時間帯)
-		//Kosu.get(i).get(k)で発信先がi番目のビルと発信元がj番目のビルの時間帯による通信量%　0:発信
 		ArrayList<ArrayList<String>> KosuList = new ArrayList<ArrayList<String>>();
 		// long start = System.currentTimeMillis();
 		try {

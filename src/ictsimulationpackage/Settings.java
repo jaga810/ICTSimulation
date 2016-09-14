@@ -10,6 +10,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class Settings {
 	static String sheetName[] = { "練馬区内中継リンク", "荏原区内中継リンク", "墨田区内中継リンク" };
 	static int sheetNum = 3;
+    static String address1 = "/Users/jaga/Documents/domain_project/data/NTT-ver2.xlsx";
 
 	static ArrayList<Integer> LinkListPlus() {
 		// 0,...,101,0,...,100までの数を収容
@@ -50,7 +51,7 @@ public class Settings {
 		String sheetName[] = { "練馬区内中継リンク", "荏原区内中継リンク", "墨田区内中継リンク" };
 		String[] BldgName = new String[102];
 		try {
-			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/NTT電話網-ver2.xlsx");
+			FileInputStream fi = new FileInputStream(address1);
 			XSSFWorkbook book = new XSSFWorkbook(fi);
 			fi.close();
 
@@ -82,7 +83,7 @@ public class Settings {
 		int[] link = new int[103];
 		int dataNum;
 		try {
-			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/NTT電話網-ver2.xlsx");
+			FileInputStream fi = new FileInputStream(address1);
 			XSSFWorkbook book = new XSSFWorkbook(fi);
 			fi.close();
 			// データの数の読み込み
@@ -115,7 +116,7 @@ public class Settings {
 		int dataNum;
 		int sheetNum = 3;
 		try {
-			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/NTT電話網-ver2.xlsx");
+			FileInputStream fi = new FileInputStream(address1);
 			XSSFWorkbook book = new XSSFWorkbook(fi);
 			fi.close();
 			// データの数の読み込み
@@ -147,7 +148,7 @@ public class Settings {
 		// 各ビルの中継局ID
 		int[] exchangeID = new int[102];
 		try {
-			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/NTT電話網-ver2.xlsx");
+			FileInputStream fi = new FileInputStream(address1);
 			XSSFWorkbook book = new XSSFWorkbook(fi);
 			fi.close();
 			// データの数の読み込み
