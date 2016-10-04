@@ -14,7 +14,6 @@ public class Output {
 
 		Sheet sheet;
 		sheet = wb.createSheet(sheetName);
-		Row row;
 		for (int i = 0; i < array.length; i++) {
 			sheet.createRow(i).createCell(0).setCellValue(array[i]);
 		}
@@ -39,9 +38,9 @@ public class Output {
 		}
 	}
 
-	static void areaDevidedKosu(File folder) {
+	static void areaDevidedKosu(File folder, int loop) {
 		String path = folder  + "/areaDevidedKosu.xls";
-		String sheetName = "areaKosu";
+		String sheetName = "areaKosu_" + loop;
 		long array[] = Call.areaKosu;
 
 		File file = new File(path);
@@ -56,7 +55,7 @@ public class Output {
 			sheet.createRow(i).createCell(0).setCellValue(array[i]);
 		}
 		// areaLossKosu
-		sheetName = "areaLossKosu";
+		sheetName = "areaLossKosu_" + loop;
 		array = Call.areaLossKosu;
 		sheet = wb.createSheet(sheetName);
 		for (int i = 0; i < array.length; i++) {
@@ -64,7 +63,7 @@ public class Output {
 		}
 
 		// exKosu
-		sheetName = "exKosu";
+		sheetName = "exKosu_" + loop;
 		array = Call.exKosu;
 		sheet = wb.createSheet(sheetName);
 		for (int i = 0; i < array.length; i++) {
@@ -72,7 +71,7 @@ public class Output {
 		}
 
 		// exLossKosu
-		sheetName = "exLossKosu";
+		sheetName = "exLossKosu_" + loop;
 		array = Call.exLossKosu;
 		sheet = wb.createSheet(sheetName);
 		for (int i = 0; i < array.length; i++) {
@@ -110,7 +109,7 @@ public class Output {
 		}
 
 		Row row = sheet.createRow(0);
-		// 絡むインデックス
+		// カラムインデックス
 		Cell cell = row.createCell(0);
 		cell.setCellValue("time");
 		cell = row.createCell(1);
@@ -195,24 +194,130 @@ public class Output {
 
 		Output.output(file,wb);
 	}
+	public static void regulationMethodDevided(int hour, int timeLength, File timedir, int roop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
+		//通信規制の方針を比較する
+		String path = timedir + "/regulationMethodDevidedOutput.xls";
+		File file = new File(path);
+		Workbook wb = new HSSFWorkbook();
+		wb = Output.getWorkbook(file, wb);
+		Sheet sheet;
+		if (roop > 0) {
+			sheet = wb.createSheet(mag + "倍_regulated");
+		} else {
+			sheet = wb.createSheet(mag + "倍");
+		}
+		Row row = sheet.createRow(0);
+		// カラムインデックス
+		Cell cell = row.createCell(0);
+		cell.setCellValue("time");
+		cell = row.createCell(1);
+		cell.setCellValue("occur");
+		cell = row.createCell(2);
+		cell.setCellValue("lost");
+		cell = row.createCell(3);
+		cell.setCellValue("rate");
+		cell = row.createCell(4);
+		cell.setCellValue("exists");
+		cell = row.createCell(5);
+		cell.setCellValue("deleted");
+		cell = row.createCell(6);
+		cell.setCellValue("avg holding time");
+
+		for (int t = 0; t < timeLength; t++) {
+			row = sheet.createRow(t + 1);
+			cell = row.createCell(0);
+			cell.setCellValue(t + 1);
+			cell = row.createCell(1);
+			cell.setCellValue(callOccur[t]);
+			cell = row.createCell(2);
+			cell.setCellValue(callLoss[t]);
+			cell = row.createCell(3);
+			cell.setCellValue(callLossRate[t]);
+			cell = row.createCell(4);
+			cell.setCellValue(callExist[t]);
+			cell = row.createCell(5);
+			cell.setCellValue(callDeleted[t]);
+			cell = row.createCell(6);
+			cell.setCellValue(avgHoldTime[t]);
+		}
+		// １時間単位のデータ
+		if (roop > 0) {
+			sheet = wb.createSheet(mag + "倍_byHour_regulated");
+		} else {
+			sheet = wb.createSheet( mag + "倍_byHour");
+		}
+
+		row = sheet.createRow(0);
+		cell = row.createCell(0);
+		cell.setCellValue("time");
+		cell = row.createCell(1);
+		cell.setCellValue("occur");
+		cell = row.createCell(2);
+		cell.setCellValue("lost");
+		cell = row.createCell(3);
+		cell.setCellValue("rate");
+		cell = row.createCell(4);
+		cell.setCellValue("exists");
+		cell = row.createCell(5);
+		cell.setCellValue("deleted");
+		cell = row.createCell(6);
+		cell.setCellValue("avg holding time");
+
+
+		double callOccurH[] = Output.arrayIntoHour(callOccur);
+		double callLossH[] = Output.arrayIntoHour(callLoss);
+		double callLossRateH[] = Output.arrayIntoHourRate(callLossRate);
+		double callExistH[] = Output.arrayIntoHour(callExist);
+		double callDeletedH[] = Output.arrayIntoHour(callDeleted);
+		double avgHoldTimeH[] = Output.arrayIntoHourRate(avgHoldTime);
+
+		for (int h = 0; h < hour; h++) {
+			row = sheet.createRow(h + 1);
+			row.createCell(0).setCellValue(h + 1);
+			row.createCell(1).setCellValue(callOccurH[h]);
+			row.createCell(2).setCellValue(callLossH[h]);
+			row.createCell(3).setCellValue(callLossRateH[h]);
+			row.createCell(4).setCellValue(callExistH[h]);
+			row.createCell(5).setCellValue(callDeletedH[h]);
+			row.createCell(6).setCellValue(avgHoldTimeH[h]);
+		}
+		double worst_loss_rate = 0;
+		for (int i = 0; i < callLossRateH.length; i++) {
+			if (worst_loss_rate < callLossRateH[i]) {
+				worst_loss_rate = callLossRateH[i];
+			}
+		}
+		sheet.createRow(26).createCell(0).setCellValue("最大呼損率/h");
+		sheet.createRow(27).createCell(0).setCellValue(worst_loss_rate);
+
+		Output.output(file, wb);
+	}
+
 
 	public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount) {
+		Building[] list =  BuildingList.bldgList;
 		try {
 			File file = new File(timedir + "/summary.txt");
 			file.createNewFile();
 			FileWriter filewriter = new FileWriter(file);
-			filewriter.write("需要" + mag + "倍");
-			filewriter.write(" ");
+			filewriter.write("需要" + mag + "倍\n");
 			filewriter.write("破壊リンク：");
 			for (int i = 0; i < brokenLink.length; i++) {
 				filewriter.write(brokenLink[i]);
+				filewriter.write("\n");
 			}
-			filewriter.write(" ");
-			filewriter.write("破壊ビル");
+
+			filewriter.write("破壊ビル\n");
 			for (int i = 0; i < brokenBuilding.length; i++) {
 				filewriter.write(brokenBuilding[i]);
+				filewriter.write("\n");
 			}
-			filewriter.write(" ");
+			for(int i = 0; i < list.length;i++) {
+				if (list[i].broken) {
+					filewriter.write(list[i].bname);
+					filewriter.write("\n");
+				}
+			}
 			filewriter.write("破壊リンク容量" + ammount + "倍");
 			filewriter.close();
 		} catch (IOException e) {
@@ -220,12 +325,12 @@ public class Output {
 		}
 	}
 
-	public static void StandardOutput(int timeLength, File timedir, double[] callLossRate, double[][] capHis) {
+	public static void StandardOutput(int timeLength, File timedir, double[] callLossRate, double[][] capHis,int loop) {
 		File file = new File(timedir + "/standardData.xls");
 		Workbook wb = new HSSFWorkbook();
 		wb = Output.getWorkbook(file, wb);
 
-		Sheet sheet = wb.createSheet("capHis");
+		Sheet sheet = wb.createSheet("capHis_" + loop);
 		Row row;
 		row = sheet.createRow(0);
 		for (int i = 0; i < 102; i++) {
@@ -239,7 +344,7 @@ public class Output {
 			}
 		}
 		;
-		sheet = wb.createSheet("lossRate");
+		sheet = wb.createSheet("lossRate_" + loop);
 		for (int t = 0; t < timeLength; t++) {
 			sheet.createRow(t).createCell(0).setCellValue(callLossRate[t]);
 		}
@@ -248,7 +353,7 @@ public class Output {
 
 
 	//リンクを準に破壊していった場合の結果をアウトプットするもの
-	public static void BreakLinkInOrderOutput(int roopNum, String date, double[] worstCallLossRate, File folder) {
+	public static void BreakLinkInOrderOutput(int loopNum, double[] worstCallLossRate, File folder) {
 		//ファイルの作成
 		String fileName = folder + "/BreakLinkInOrder.xls";
 		File file = new File(fileName);
@@ -258,8 +363,7 @@ public class Output {
 		//sheetの作成
 		Sheet sheet;
 		sheet = wb.createSheet("worstCallLossRate");
-		Row row;
-		for (int i = 0; i < roopNum; i++) {
+		for (int i = 0; i < loopNum; i++) {
 			sheet.createRow(i).createCell(0).setCellValue(worstCallLossRate[i]);
 		}
 		Output.output(file, wb);

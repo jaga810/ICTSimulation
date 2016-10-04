@@ -1,7 +1,10 @@
 package ictsimulationpackage;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -174,5 +177,39 @@ public class Settings {
 			System.exit(1);
 		}
 		return exchangeID;
+	}
+
+	static double[] getScale() {
+		System.out.println("downloading scaleData ...");
+		//各IDに紐付いた配列にscaleを読み込む
+		double[] scale = new double[102];
+		try {
+			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/scale_data.xls");
+			XSSFWorkbook book = new XSSFWorkbook(fi);
+			fi.close();
+			// データの数の読み込み
+			Sheet sheet = null;
+			Row row;
+			HashMap<String , Building> map = BuildingList.bldgIndex;
+
+			for (int s = 2; s <= 4; s++) {
+				//シートの取得
+				sheet = book.getSheet(("Sheet" + s));
+				int rowNum = (int) sheet.getRow(0).getCell(3).getNumericCellValue();
+				for (int r = 0; r < rowNum; r++) {
+					//各行についてmeshcodeを取得し書き込み
+					row = sheet.getRow(r);
+					String bname = row.getCell(0).getStringCellValue();
+					int idx = map.get(bname).bid;
+					double val = row.getCell(6).getNumericCellValue();
+					scale[idx] = val;
+				}
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return scale;
 	}
 }
