@@ -24,7 +24,7 @@ public class Main2 {
     public static void main(String args[]) {
         /*各種設定*/
         // ループの回数
-        final int loopNum = 2;
+        final int loopNum = 4;
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
@@ -35,8 +35,8 @@ public class Main2 {
         final String brokenBuilding[] = {};
         //破壊時に元の容量の何倍に設定するか
         final double ammount = 0;
-        //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary
-        int output[] ={0,3,5};
+        //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
+        int output[] ={0,3,5, 6};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
@@ -100,8 +100,8 @@ public class Main2 {
             
             
             /*initialization*/
-            // リンクとビルのbroken状態を回復する
-            if (scenario != 1) {
+            // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
+            if (scenario == 0 || loop % 2 == 0) {
                 bldgs.resetBroken();
             }
 
@@ -157,7 +157,7 @@ public class Main2 {
             
             /*ビルの破壊関連*/
             //地震による影響で壊れるシナリオで使用
-            if (scenario == 1 && loop == 0) {
+            if (scenario == 1 && loop % 2 == 0) {
                 //シナリオの読み込み
                 Building.getScale();
                 //破壊
@@ -314,12 +314,18 @@ public class Main2 {
             //通信規制の方針を比較する
             if (contain(output, 3)) {
                 Output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime);
+                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime,loopNum);
+            }
+
+            //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
+            if (contain(output, 6) && loop == loopNum - 1) {
+                Output.regulationPointOutput(timedir);
             }
 
             //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
             if (contain(output, 2)) {
-                Output.magDevidedOutput(hour, timeLength, timedir, loop, mag, callExist, callOccur, callLoss, callLossRate, callDeleted, avgHoldTime);
+                Output.magDevidedOutput(hour, timeLength, timedir, loop, mag, callExist, callOccur, callLoss,
+                        callLossRate, callDeleted, avgHoldTime);
             }
 
             //発生area別に呼数を出力する
