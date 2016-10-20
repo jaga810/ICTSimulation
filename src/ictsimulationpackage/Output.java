@@ -11,7 +11,7 @@ public class Output {
     static ArrayList<double[]> allCallLossRate = new ArrayList<>();
     static ArrayList<Double> allPointList = new ArrayList();
     static ArrayList<Integer> brokenBldgNum = new ArrayList();
-    static ArrayList<String> brokenBldgNameList = new ArrayList<>();
+    static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -332,15 +332,15 @@ public class Output {
             row = sheet.createRow(rateReg.length + 1);
             row.createCell(idx++).setCellValue("破壊ビル");
             int brokenNum = 0;
-            StringBuilder st = new StringBuilder();
+            ArrayList<Integer> tmpIdList = new ArrayList<>();
             for(int i = 0 ; i < list.length;i++) {
                 if (list[i].broken) {
                     row.createCell(idx++).setCellValue(list[i].bname);
                     brokenNum ++;
-                    st.append(list[i].bname + " ");
+                    tmpIdList.add(list[i].bid);
                 }
             }
-            brokenBldgNameList.add(st.toString());
+            brokenBldgId.add(tmpIdList);
             brokenBldgNum.add(brokenNum);
             allCallLossRate.clear();
         }
@@ -430,12 +430,28 @@ public class Output {
         Sheet s;
         s = wb.createSheet("summary");
         Row r;
+        Building[] bList = BuildingList.bldgList;
+        int[] cnt = new int[103];
+
         for(int i = 0; i < allPointList.size();i++) {
             r = s.createRow(i);
             r.createCell(0).setCellValue(i);
             r.createCell(1).setCellValue(allPointList.get(i));
             r.createCell(2).setCellValue(brokenBldgNum.get(i));
-            r.createCell(3).setCellValue(brokenBldgNameList.get(i));
+
+            ArrayList<Integer> list = brokenBldgId.get(i);
+            for(int k = 0; k < brokenBldgId.size();k++) {
+                Building bldg = bList[list.get(k)];
+                r.createCell(3 + k).setCellValue(bldg.bname);
+                cnt[bldg.bid]++;
+             }
+        }
+
+        int st = allPointList.size() + 1;
+        for(int i = 0;i < cnt.length;i++) {
+            r = s.createRow(st + i);
+            r.createCell(0).setCellValue(bList[i].bname);
+            r.createCell(1).setCellValue(cnt[i]);
         }
         Output.output(file, wb);
     }

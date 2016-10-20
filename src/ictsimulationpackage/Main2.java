@@ -36,7 +36,7 @@ public class Main2 {
         //破壊時に元の容量の何倍に設定するか
         final double ammount = 0;
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] ={0,3,5, 6};
+        int output[] = {0, 3, 5, 6};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
@@ -83,19 +83,19 @@ public class Main2 {
 
         // 全てのビル情報の取得
         Building[] bldgList = bldgs.bldgList;
-
         loop:
         for (int loop = 0; loop < loopNum; loop++) {
+
             // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
             int timeRegulation;
-            HoldingTime.method = loop;
+            HoldingTime.method = loop % 2;
 
             //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = loop;
+            int ammountRegulation = loop % 2;
 
 
             // Callの持続時間の方針: 0:制限なし 1:１分まで
-            Call.reset(timeLength);
+            Call.reset();
             
             
             
@@ -188,6 +188,8 @@ public class Main2 {
             // bldgs.outLink.broken(ammount);
 
 
+            System.out.print("loop : " + (loop + 1) + " , mag : " + mag + " ");
+            double loopStartTime = System.nanoTime();
             // 時間ループの開始
             for (int t = 0; t < timeLength; t++) {
                 // capacityと現存呼は保存される
@@ -209,14 +211,14 @@ public class Main2 {
                 CandiCall candidate;
                 for (Building start : bldgList) {
                     for (Building dest : bldgList) {
-                        if (start.bname == dest.bname && dest.bname == "区外") {
+                        if (start.bname.equals(dest.bname) && dest.bname.equals("区外")) {
                             continue;
                         }
                         occur = start.occurence(t, dest, mag);
                         //区外発信呼の切断シミュレーション用
                         if (ammountRegulation == 1) {
                             limit = start.occurence(t, dest, 1) * 2;
-                            if (start.bname == "区外" && occur > limit) {
+                            if (start.bname.equals("区外") && occur > limit) {
                                 occur = limit;
                             }
                         }
@@ -255,16 +257,14 @@ public class Main2 {
                 }
 
                 // 時刻tに終了する呼の消去
-                int deleteNum = 0;
                 for (Call call : Call.limitList[t]) {
                     call.delete();
                     callExist[t]--;
-                    deleteNum++;
                     callDeleted[t]++;
                 }
                 Call.limitList[t].clear();
 
-                // 有る時間帯iにおける生起呼の最長終了時間が訪れたらそのリストを破壊する
+                // 有る時間帯tにおける生起呼の最長終了時間が訪れたらそのリストを破壊する
                 for (int i = 0; i < max.size(); i++) {
                     // System.out.println(max.get(i));
                     if (max.get(i) == t) {// 0時台以外から始める場合、+60*(開始時間-1)
@@ -279,7 +279,10 @@ public class Main2 {
                 avgHoldTime[t] = Double.valueOf(Call.sumHoldTime[t]) / Double.valueOf(callOccur[t]);
                 double ntime = System.nanoTime() - calcTime;
 
-                System.out.println("----------------loop:" + (loop + 1) + "---time:" + t + "----mag:" + mag+ "------------------");
+                if (t < timeLength && t % 100 == 0) {
+                    System.out.print(".");
+                }
+//                System.out.println("----------------loop:" + (loop + 1) + "---time:" + t + "----mag:" + mag+ "------------------");
 //                System.out.println("生起：" + callOccur[t]);
 //                System.out.println("損失：" + callLoss[t]);
 //                System.out.println("呼損率：" + callLossRate[t]);
@@ -291,15 +294,17 @@ public class Main2 {
 //                System.out.println("passed time:" + ntime + "ns");
                 // 呼損率が100%をこえることはない
                 if (callLossRate[t] > 100) {
-                    int a =  1 / 0;
+                    int a = 1 / 0;
                 }
 
 
             }
+
+
             // 呼損率の最大値格納
             worstCallLossRate[loop] = Output.maxInArray(callLossRate);
 
-            System.out.println("-----------------OUTPUT start-------------------");
+//            System.out.println("-----------------OUTPUT start-------------------");
             // summary
             if (contain(output, 5)) {
                 Output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount);
@@ -307,14 +312,14 @@ public class Main2 {
 
             // standard outputを行う
             if (contain(output, 0)) {
-                Output.StandardOutput(timeLength, timedir, callLossRate, capHis,loop);
+                Output.StandardOutput(timeLength, timedir, callLossRate, capHis, loop);
             }
 
 
             //通信規制の方針を比較する
             if (contain(output, 3)) {
                 Output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime,loopNum);
+                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum);
             }
 
             //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
@@ -333,7 +338,9 @@ public class Main2 {
                 Output.areaDevidedKosu(timedir, loop);
             }
 
-            System.out.println("-----------------OUTPUT finished-------------------");
+//            System.out.println("-----------------OUTPUT finished-------------------");
+            double loopDur = (System.nanoTime() - loopStartTime) * 1.0e-9;
+            System.out.println(loopDur);
         }
 
 
@@ -348,7 +355,7 @@ public class Main2 {
     }
 
     private static boolean contain(int[] arr, int val) {
-        for(int i = 0 ; i < arr.length; i++) {
+        for (int i = 0; i < arr.length; i++) {
             if (arr[i] == val) {
                 return true;
             }

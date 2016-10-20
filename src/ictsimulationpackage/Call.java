@@ -3,16 +3,16 @@ package ictsimulationpackage;
 import java.util.ArrayList;
 
 public class Call {
-    // ‚ ‚é‚P‚Â‚ÌŒÄ‚Ìƒf[ƒ^
-    static ArrayList<Call> limitList[];// —L‚éŠÔ‚ÉI—¹‚·‚éŒÄ‚ÌƒŠƒXƒg
+    // ã‚ã‚‹ï¼‘ã¤ã®å‘¼ã®ãƒ‡ãƒ¼ã‚¿
+    static ArrayList<Call> limitList[];// æœ‰ã‚‹æ™‚é–“ã«çµ‚äº†ã™ã‚‹å‘¼ã®ãƒªã‚¹ãƒˆ
     static int sumHoldTime[];
-    //‹æ“à‚Å”­¶‚µ‚½ŒÄ‚Ì¶¬”‚ÆŒÄ‘¹”i—İŒvFŠÔ‘S‘Ì‚Åj
+    //åŒºå†…ã§ç™ºç”Ÿã—ãŸå‘¼ã®ç”Ÿæˆæ•°ã¨å‘¼ææ•°ï¼ˆç´¯è¨ˆï¼šæ™‚é–“å…¨ä½“ã§ï¼‰
     static long areaKosu[] = new long[102];
     static long exLossKosu[] = new long[102];
-    //‹æŠO‚Å”­¶‚µ‚½ŒÄ‚Ì¶¬”‚ÆŒÄ‘¹”i—İŒvj
+    //åŒºå¤–ã§ç™ºç”Ÿã—ãŸå‘¼ã®ç”Ÿæˆæ•°ã¨å‘¼ææ•°ï¼ˆç´¯è¨ˆï¼‰
     static long exKosu[] = new long[102];
     static long areaLossKosu[] = new long[102];
-    static long timeLength;
+    static int timeLength;
 
     Building start;
     Building dest;
@@ -20,60 +20,64 @@ public class Call {
     ArrayList<Link> LinkList;
     boolean success = false;
 
-    static void reset(int length) {
-        for (int i = 0; i < length; i++) {
-            // ‰Šú‰»
-            limitList[i] = new ArrayList<Call>();
+    static void reset() {
+        limitList = new ArrayList[timeLength];
+        for (int i = 0; i < timeLength; i++) {
+            // åˆæœŸåŒ–
+            limitList[i] = new ArrayList<>();
             sumHoldTime[i] = 0;
         }
-        for (int i = 0; i < areaKosu.length; i++) {
-            areaKosu[i] = 0;
-            areaLossKosu[i] = 0;
-            exKosu[i] = 0;
-            exLossKosu[i] = 0;
-        }
+        areaKosu = new long[102];
+        exLossKosu = new long[102];
+        areaLossKosu = new long[102];
+        exKosu = new long[102];
+        sumHoldTime = new int[timeLength];
     }
 
     Call(int tLength) {
         sumHoldTime = new int[tLength];
         limitList = new ArrayList[tLength];
         for (int i = 0; i < tLength; i++) {
-            // ‰Šú‰»
-            limitList[i] = new ArrayList<Call>();
+            // åˆæœŸåŒ–
+            limitList[i] = new ArrayList<>();
         }
         timeLength = tLength;
-        System.out.println("Call Class initialized with timelength:" + timeLength);
+        System.out.println("Call Class initialized with timelength = " + timeLength);
     }
 
     Call(Building start, Building dest, int time) {
-        // time:¶‹NAbroken[]:‰ó‚ê‚½ƒŠƒ“ƒN
+        //ç™ºç€ãƒ“ãƒ«ã®è¨­å®š
         this.start = start;
         this.dest = dest;
-        // I—¹
+
+        // çµ‚äº†æ™‚åˆ»
         int holdTime = HoldingTime.OneHoldingTime();
         this.EndTime = time + holdTime;
         sumHoldTime[time] += holdTime;
-        // System.out.println("sum hold time" + sumHoldTime[time]);
+
+
         if (start == dest) {
-            // o”­ƒrƒ‹‚Æ“’…ƒrƒ‹‚ª“¯‚¶ê‡
-            success = true;
+            // å‡ºç™ºãƒ“ãƒ«ã¨åˆ°ç€ãƒ“ãƒ«ãŒåŒã˜å ´åˆ
+            if (!start.broken) {
+                //ãƒ“ãƒ«ãŒå£Šã‚Œã¦ã„ãªã‘ã‚Œã°
+                success = true;
+            }
         } else {
-            // g—p‚·‚éƒŠƒ“ƒN
-            this.LinkList = LargeRing.route(start, dest);
-            if (this.LinkList != null) {
-                // Ú‘±‚É¬Œ÷‚µ‚½ê‡
-                for (Link ln : this.LinkList) {
+            // ä½¿ç”¨ã™ã‚‹ãƒªãƒ³ã‚¯
+            LinkList = LargeRing.route(start, dest);
+            if (LinkList != null) {
+                // æ¥ç¶šã«æˆåŠŸã—ãŸå ´åˆ null = å¤±æ•—
+                for (Link ln : LinkList) {
                     ln.addCap();
                 }
                 success = true;
             }
         }
 
-        //ŒÄ‚ª¶¬‚É¬Œ÷‚µ‚½ê‡
+        //å‘¼ãŒç”Ÿæˆã«æˆåŠŸã—ãŸå ´åˆ
         if (success && EndTime < timeLength) {
-            // System.out.println("EndTime:" + EndTime);
             limitList[EndTime].add(this);
-            // ŒÄ‚Ì”­¶í•Ê‚ğƒŠƒ“ƒN‚É‘I‚è•ª‚¯‚é
+            // å‘¼ã®ç™ºç”Ÿç¨®åˆ¥ã‚’ãƒªãƒ³ã‚¯ã«é¸ã‚Šåˆ†ã‘ã‚‹=>åŒºå†…å‘¼ã®ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ç”¨
             if (start.areaBldg != null && dest.areaBldg != null && start != dest &&
                     time < 14 * 60 && time > 12 * 60) {
                 if ((start.areaBldg == dest.areaBldg)) {
@@ -90,24 +94,6 @@ public class Call {
                     }
                 }
             }
-        } else if (EndTime < timeLength) {
-            //ŒÄ‚Ì¶¬‚É¸”s‚µ‚½ê‡
-            // ŒÄ‚Ì”­¶í•Ê‚ğƒŠƒ“ƒN‚É‘I‚è•ª‚¯‚é
-//			if (start.areaBldg != null && dest.areaBldg != null && start != dest) {
-//				if ((start.areaBldg == dest.areaBldg)) {
-//					for (Link ln : LinkList) {
-//						if (ln.id < 102) {
-//							areaLossKosu[ln.id]++;
-//						}
-//					}
-//				} else {
-//					for (Link ln : LinkList) {
-//						if (ln.id < 102) {
-//							exLossKosu[ln.id]++;
-//						}
-//					}
-//				}
-//			}
         }
     }
 
