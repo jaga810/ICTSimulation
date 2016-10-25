@@ -440,7 +440,7 @@ public class Output {
             r.createCell(2).setCellValue(brokenBldgNum.get(i));
 
             ArrayList<Integer> list = brokenBldgId.get(i);
-            for(int k = 0; k < brokenBldgId.size();k++) {
+            for(int k = 0; k < list.size();k++) {
                 Building bldg = bList[list.get(k)];
                 r.createCell(3 + k).setCellValue(bldg.bname);
                 cnt[bldg.bid]++;

@@ -78,10 +78,9 @@ public class LargeRing {
     // 違う区に向けてルートを決定する
     static ArrayList<Link> exRoute(Building start, Building dest) {
         // 変数初期化
-        ArrayList<Link> link = new ArrayList<Link>();
-        Building sAreaBldg = null;
-        Building dAreaBldg = null;
-        Building bldg = null;
+        ArrayList<Link> link = new ArrayList();
+        Building sAreaBldg ;
+        Building dAreaBldg ;
         // 変数代入
         sAreaBldg = start.areaBldg;
         dAreaBldg = dest.areaBldg;
@@ -107,7 +106,7 @@ public class LargeRing {
 
     // 同じくないのビル間、exRoopのビル間、各リングの一周で済む区間の探索
     static ArrayList<Link> inRoute(Building start, Building dest) {
-        ArrayList<Link> link = new ArrayList<Link>();
+        ArrayList<Link> link;
         link = SmallRing.route(start, dest);
         return link;
     }

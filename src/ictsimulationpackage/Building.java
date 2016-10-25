@@ -5,9 +5,6 @@ import java.util.HashMap;
 public class Building {
     //データ読み込み
     static String[] bldgName = Settings.BldgName();
-    static int[] exchangeID = Settings.exchangeID();
-    static int[] bldgLinkR = Settings.BldgLinkR();
-    static int[] bldgLinkL = Settings.BldgLinkL();
     static double[] scale ;
 
     //変数
@@ -25,16 +22,17 @@ public class Building {
     //左右方向のリンク
     Link linkR;
     Link linkL;
+
     //左右方向のビル;
     Building bldgR;
     Building bldgL;
     Building exBldgR;
     Building exBldgL;
-    //優先探索方向のテーブル
-    int[] table;
+
     //区内中継リンク
     Link exLinkR;
     Link exLinkL;
+
     //区外中継リンク
     Link outLink;
 
@@ -44,10 +42,10 @@ public class Building {
     Building() {
         //start用
         for (int i = 0; i < kosu.length; i++) {
-            kosu[i] = new HashMap<Building, Double>();
+            kosu[i] = new HashMap();
         }
         for (int i = 0; i < kosuTaken.length; i++) {
-            kosuTaken[i] = new HashMap<Building, Double>();
+            kosuTaken[i] = new HashMap();
         }
     }
 
@@ -71,7 +69,7 @@ public class Building {
         prob = scale[bid ] / 100;
         if (Math.random() < prob) {
             broken = true;
-            System.out.println(bname + " is broken!");
+//            System.out.println(bname + " is broken!");
         }
     }
 

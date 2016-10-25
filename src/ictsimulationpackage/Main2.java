@@ -24,29 +24,39 @@ public class Main2 {
     public static void main(String args[]) {
         /*各種設定*/
         // ループの回数
-        final int loopNum = 4;
+        final int loopNum = 50;
+
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
+
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
+
         // 破壊リンクの設定 idで設定
         final int brokenLink[] = {};
+
         // 破壊ビルの設定
         final String brokenBuilding[] = {};
+
         //破壊時に元の容量の何倍に設定するか
         final double ammount = 0;
+
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
         int output[] = {0, 3, 5, 6};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
+
         // 計算時間の算出
         double calcTime;
         calcTime = System.nanoTime();
+
         // 24時間
         final int hour = 24;
+
         // 一時間=60分
         final int timeLength = hour * 60;
+
         // 1リンク設計回線数
         final int kaisensu = 10000 * 2;
         final int outKaisensu = 14200 * 2; // 区内中継リンク
@@ -59,10 +69,8 @@ public class Main2 {
         sdf = new SimpleDateFormat("hh_mm_ss");
         String time = sdf.format(c.getTime());
 
-        // 出力フォルダ
-        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
-
         // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
+        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
         File datedir = new File(folder);
         if (!datedir.exists()) {
             datedir.mkdir();
@@ -83,6 +91,9 @@ public class Main2 {
 
         // 全てのビル情報の取得
         Building[] bldgList = bldgs.bldgList;
+
+        //シナリオの読み込み
+        Building.getScale();
         loop:
         for (int loop = 0; loop < loopNum; loop++) {
 
@@ -158,8 +169,6 @@ public class Main2 {
             /*ビルの破壊関連*/
             //地震による影響で壊れるシナリオで使用
             if (scenario == 1 && loop % 2 == 0) {
-                //シナリオの読み込み
-                Building.getScale();
                 //破壊
                 for (Building bldg : BuildingList.startBldgList) {
                     bldg.brokenByQuake();
@@ -282,22 +291,8 @@ public class Main2 {
                 if (t < timeLength && t % 100 == 0) {
                     System.out.print(".");
                 }
-//                System.out.println("----------------loop:" + (loop + 1) + "---time:" + t + "----mag:" + mag+ "------------------");
-//                System.out.println("生起：" + callOccur[t]);
-//                System.out.println("損失：" + callLoss[t]);
-//                System.out.println("呼損率：" + callLossRate[t]);
-//                System.out.println("存在：" + callExist[t]);
-//                System.out.println("deleted calls ..." + callDeleted[t]);
-//                // System.out.println("sumHoldTIme:" + Call.sumHoldTime[t]);
-//                // System.out.println("call occur:" + callOccur[t]);
-//                System.out.println("average Holding Time:" + avgHoldTime[t]);
-//                System.out.println("passed time:" + ntime + "ns");
-                // 呼損率が100%をこえることはない
-                if (callLossRate[t] > 100) {
-                    int a = 1 / 0;
-                }
-
-
+                //モニタ
+//                monitor("----------------loop:" + (loop + 1) + "---time:" + t + "----mag:" + mag + "------------------", callExist[t], callOccur[t], callLoss[t], callLossRate[t], callDeleted[t], avgHoldTime[t], ntime);
             }
 
 
@@ -352,6 +347,19 @@ public class Main2 {
 
         calcTime = System.nanoTime() - calcTime;
         System.out.println("計算時間：" + (calcTime * (Math.pow(10, -9))) + "s");
+    }
+
+    private static void monitor(String x, int i, int i1, int callLos, double v, int i2, double v1, double ntime) {
+        System.out.println(x);
+        System.out.println("生起：" + i1);
+        System.out.println("損失：" + callLos);
+        System.out.println("呼損率：" + v);
+        System.out.println("存在：" + i);
+        System.out.println("deleted calls ..." + i2);
+        // System.out.println("sumHoldTIme:" + Call.sumHoldTime[t]);
+        // System.out.println("call occur:" + callOccur[t]);
+        System.out.println("average Holding Time:" + v1);
+        System.out.println("passed time:" + ntime + "ns");
     }
 
     private static boolean contain(int[] arr, int val) {
