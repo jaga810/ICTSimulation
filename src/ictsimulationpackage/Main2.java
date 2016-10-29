@@ -98,11 +98,11 @@ public class Main2 {
         for (int loop = 0; loop < loopNum; loop++) {
 
             // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
-            int timeRegulation;
-            HoldingTime.method = loop % 2;
+            int timeRegulation  = loop % 2;
+            HoldingTime.method = timeRegulation;
 
             //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = loop % 2;
+            int ammountRegulation = 0;
 
 
             // Callの持続時間の方針: 0:制限なし 1:１分まで
@@ -302,7 +302,7 @@ public class Main2 {
 //            System.out.println("-----------------OUTPUT start-------------------");
             // summary
             if (contain(output, 5)) {
-                Output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount);
+                Output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation);
             }
 
             // standard outputを行う

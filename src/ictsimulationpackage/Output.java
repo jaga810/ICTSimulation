@@ -1,6 +1,7 @@
 package ictsimulationpackage;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -12,6 +13,7 @@ public class Output {
     static ArrayList<Double> allPointList = new ArrayList();
     static ArrayList<Integer> brokenBldgNum = new ArrayList();
     static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
+    static ArrayList<ArrayList<Integer>> minusBrokenBldgId = new ArrayList<>();
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -340,6 +342,11 @@ public class Output {
                     tmpIdList.add(list[i].bid);
                 }
             }
+            if (difSum < 0) {
+                //効果がマイナスだった時
+                minusBrokenBldgId.add(tmpIdList);
+            }
+
             brokenBldgId.add(tmpIdList);
             brokenBldgNum.add(brokenNum);
             allCallLossRate.clear();
@@ -348,27 +355,35 @@ public class Output {
     }
 
 
-    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount) {
-        Building[] list = BuildingList.bldgList;
+    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg) {
+//        Building[] list = BuildingList.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
             file.createNewFile();
             FileWriter filewriter = new FileWriter(file);
             filewriter.write("需要" + mag + "倍\n");
-            filewriter.write("破壊リンク：");
-            for (int i = 0; i < brokenLink.length; i++) {
-                filewriter.write(brokenLink[i]);
-                filewriter.write("\n");
-            }
+//            filewriter.write("破壊リンク：");
+//            for (int i = 0; i < brokenLink.length; i++) {
+//                filewriter.write(brokenLink[i]);
+//                filewriter.write("\n");
+//            }
 
-            filewriter.write("破壊ビル\n");
-            for (int i = 0; i < list.length; i++) {
-                if (list[i].broken) {
-                    filewriter.write(list[i].bname);
-                    filewriter.write("\n");
-                }
-            }
+//            filewriter.write("破壊ビル\n");
+//            for (int i = 0; i < list.length; i++) {
+//                if (list[i].broken) {
+//                    filewriter.write(list[i].bname);
+//                    filewriter.write("\n");
+//                }
+//            }
             filewriter.write("破壊リンク容量" + ammount + "倍");
+            String reg = "";
+            if (timeReg == 1) {
+                reg += "時間規制 ";
+            }
+            if (amReg == 1) {
+                reg += "通信量規制";
+            }
+            filewriter.write("規制方針 : " + reg);
             filewriter.close();
         } catch (IOException e) {
             System.out.println(e);
@@ -431,8 +446,10 @@ public class Output {
         s = wb.createSheet("summary");
         Row r;
         Building[] bList = BuildingList.bldgList;
-        int[] cnt = new int[103];
+        int[] brokenBldgCnt = new int[103];
+        int[] minusBrokenBldgCnt = new int[103];
 
+        //壊れたビルについての集積
         for(int i = 0; i < allPointList.size();i++) {
             r = s.createRow(i);
             r.createCell(0).setCellValue(i);
@@ -443,15 +460,30 @@ public class Output {
             for(int k = 0; k < list.size();k++) {
                 Building bldg = bList[list.get(k)];
                 r.createCell(3 + k).setCellValue(bldg.bname);
-                cnt[bldg.bid]++;
+                brokenBldgCnt[bldg.bid]++;
              }
         }
+        //効果がマイナスのときに壊れていたビルの集積
+        for(int i = 0; i < minusBrokenBldgId.size();i++) {
+            ArrayList<Integer> list = minusBrokenBldgId.get(i);
+            for(int k = 0; k < list.size();k++) {
+                minusBrokenBldgCnt[list.get(k)] ++;
+            }
+        }
 
+        //スタートする位置
         int st = allPointList.size() + 1;
-        for(int i = 0;i < cnt.length;i++) {
-            r = s.createRow(st + i);
+
+        r = s.createRow(st);
+        r.createCell(0).setCellValue("ビル名");
+        r.createCell(1).setCellValue("壊れた回数");
+        r.createCell(2).setCellValue("効果がマイナスのときに壊れた回数");
+
+        for(int i = 0;i < brokenBldgCnt.length;i++) {
+            r = s.createRow(st + i + 1);
             r.createCell(0).setCellValue(bList[i].bname);
-            r.createCell(1).setCellValue(cnt[i]);
+            r.createCell(1).setCellValue(brokenBldgCnt[i]);
+            r.createCell(2).setCellValue(minusBrokenBldgCnt[i]);
         }
         Output.output(file, wb);
     }
