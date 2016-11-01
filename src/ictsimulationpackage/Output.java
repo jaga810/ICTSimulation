@@ -415,7 +415,7 @@ public class Output {
             row = sheet.createRow(t + 1);
             row.createCell(0).setCellValue(t);
             for (int i = 0; i < 102; i++) {
-                row.createCell(i + 1).setCellValue(capHis[t][i]);
+                row.createCell(i + 1).setCellValue(capHis[i][t]);
             }
         }
         ;

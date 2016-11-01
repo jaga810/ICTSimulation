@@ -174,6 +174,9 @@ public class Main2 {
                 for (int i = 0; i < brokenLink.length; i++) {
                     bldgs.findLink(brokenLink[i]).broken(ammount);
                 }
+
+                //練馬の破壊関連
+                bldgList[0].broken();
             }
             if (brokenBuilding.length > 0) {
                 for (String bname : brokenBuilding) {
