@@ -310,7 +310,7 @@ public class Output {
             double[] rateNonReg = allCallLossRate.get(0);
             double[] rateReg = allCallLossRate.get(1);
 
-            Row row0 = sheet.createRow(0);
+            row = sheet.createRow(0);
 
             row.createCell(0).setCellValue("noRegulated");
             row.createCell(1).setCellValue("regulated");
@@ -326,7 +326,7 @@ public class Output {
                 difSum += dif;
                 row.createCell(2).setCellValue(dif);
             }
-            row0.createCell(3).setCellValue(difSum);
+            row.createCell(3).setCellValue(difSum);
             allPointList.add(difSum);
 
             Building[] list = BuildingList.bldgList;
@@ -390,7 +390,17 @@ public class Output {
         }
     }
 
-    public static void StandardOutput(int timeLength, File timedir, double[] callLossRate, double[][] capHis, int loop) {
+    public static void StandardOutput(int timeLength, File timedir, double[] callLossRate, int loop) {
+        double capHis[][] = new double[102][timeLength];
+        ArrayList<Link> links = BuildingList.allLinkList;
+
+        for(int i = 0 ; i < 102;i++) {
+            Link link = links.get(i);
+            for(int t =0 ; t < timeLength;t++) {
+                capHis[i][t] = link.capHis[t];
+            }
+        }
+
         File file = new File(timedir + "/standardData.xls");
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);

@@ -24,7 +24,7 @@ public class Main2 {
     public static void main(String args[]) {
         /*各種設定*/
         // ループの回数
-        final int loopNum = 50;
+        final int loopNum = 10;
 
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
@@ -48,8 +48,7 @@ public class Main2 {
         double[] worstCallLossRate = new double[loopNum];
 
         // 計算時間の算出
-        double calcTime;
-        calcTime = System.nanoTime();
+        double calcTime = System.nanoTime();
 
         // 24時間
         final int hour = 24;
@@ -98,17 +97,15 @@ public class Main2 {
         for (int loop = 0; loop < loopNum; loop++) {
 
             // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
-            int timeRegulation  = loop % 2;
+            int timeRegulation  = 0;
             HoldingTime.method = timeRegulation;
 
             //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = 0;
+            int ammountRegulation = loop  % 2;
 
 
             // Callの持続時間の方針: 0:制限なし 1:１分まで
             Call.reset();
-            
-            
             
             /*initialization*/
             // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
@@ -135,9 +132,6 @@ public class Main2 {
 
             // average holding time
             double[] avgHoldTime = new double[timeLength];
-
-            // capHis[t][i] = 時刻tのid = iのリンクのキャパシティの充足度
-            double[][] capHis = new double[timeLength][102];
 
             // max.get(t) = 時刻tにおいて発生した呼の中で最も終了時刻の遅いものの値
             ArrayList<Integer> max = new ArrayList<>();
@@ -211,7 +205,6 @@ public class Main2 {
 
                 // この時間における呼のリスト
                 int M = t;// 此度発生した呼の終了時刻の最遅値
-                int candiNum = 0;// 標準出力用
 
                 // 呼数の計算。及び呼候補の生成
                 ArrayList<CandiCall> candiCallList = new ArrayList();
@@ -225,20 +218,21 @@ public class Main2 {
                         }
                         occur = start.occurence(t, dest, mag);
                         //区外発信呼の切断シミュレーション用
-                        if (ammountRegulation == 1) {
+                        if (ammountRegulation == 1 && start.bname.equals("区外") ) {
                             limit = start.occurence(t, dest, 1) * 2;
-                            if (start.bname.equals("区外") && occur > limit) {
-                                occur = limit;
+                            if ( BuildingList.outLink.capacity + occur> limit) {
+                                //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
+                                occur = limit - BuildingList.outLink.capacity;
                             }
                         }
                         for (int i = 0; i < occur; i++) {
                             candidate = new CandiCall(start, dest, t);
                             candiCallList.add(candidate);
-                            candiNum++;
                             callOccur[t]++;
                         }
                     }
                 }
+
                 // 候補呼リストのシャッフル
                 Collections.shuffle(candiCallList);
 
@@ -254,16 +248,10 @@ public class Main2 {
                         }
                     } else {
                         callLoss[t]++;
-                        call = null;
                     }
                 }
 
                 max.add(M);
-
-                // 回線のhold割合を導出
-                for (int i = 0; i < 102; i++) {
-                    capHis[t][i] = bldgs.findLink(i).capHis();
-                }
 
                 // 時刻tに終了する呼の消去
                 for (Call call : Call.limitList[t]) {
@@ -307,7 +295,7 @@ public class Main2 {
 
             // standard outputを行う
             if (contain(output, 0)) {
-                Output.StandardOutput(timeLength, timedir, callLossRate, capHis, loop);
+                Output.StandardOutput(timeLength, timedir, callLossRate, loop);
             }
 
 
