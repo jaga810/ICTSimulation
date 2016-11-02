@@ -77,14 +77,12 @@ public class Building {
             for (int i = 0; i < ps.length; i++) {
                 if (ps[i].prob > 1) {
                     ps[i].bldg.broken();
-                    System.out.println(ps[i].bldg.bname + " broken");
                 }
             }
         } else {
             int cnt = 0;
             for (int i = 0; i < ps.length && cnt < limit; i++) {
                 ps[i].bldg.broken();
-                System.out.println(ps[i].bldg.bname + " broken");
                 cnt++;
             }
         }

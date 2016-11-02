@@ -24,7 +24,7 @@ public class Main2 {
     public static void main(String args[]) {
         /*各種設定*/
         // ループの回数
-        final int loopNum = 10;
+        final int loopNum = 4 * 20;
 
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
@@ -33,7 +33,10 @@ public class Main2 {
         final int scenario = 1;
 
         //直下型シナリオにおいて、ビルの破壊数を制限するか->0:制限しない
-        final int brokenBldglimit = 5;
+        final int brokenBldglimit = 10;
+
+        //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
+        final int[][] method = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 
         // 破壊リンクの設定 idで設定
         final int brokenLink[] = {};
@@ -45,7 +48,7 @@ public class Main2 {
         final double ammount = 0;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] = { 3, 5, 6};
+        int output[] = {3, 5, 6};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
@@ -98,13 +101,12 @@ public class Main2 {
         Building.getScale();
         loop:
         for (int loop = 0; loop < loopNum; loop++) {
-
             // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
-            int timeRegulation  = 0;
+            int timeRegulation = method[loop % 4][0];
             HoldingTime.method = timeRegulation;
 
             //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = loop  % 2;
+            int ammountRegulation = method[loop % 4][1];
 
 
             // Callの持続時間の方針: 0:制限なし 1:１分まで
@@ -112,7 +114,7 @@ public class Main2 {
             
             /*initialization*/
             // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
-            if (scenario == 0 || loop % 2 == 0) {
+            if (scenario == 0 || loop % 4 == 0) {
                 bldgs.resetBroken();
             }
 
@@ -164,7 +166,7 @@ public class Main2 {
 
             /*ビルの破壊関連*/
             //地震による影響で壊れるシナリオで使用
-            if (scenario == 1 && loop % 2 == 0) {
+            if (scenario == 1 && loop % 4 == 0) {
                 //破壊
                 Building.brokenByQuake(brokenBldglimit);
 
@@ -220,9 +222,9 @@ public class Main2 {
                         }
                         occur = start.occurence(t, dest, mag);
                         //区外発信呼の切断シミュレーション用
-                        if (ammountRegulation == 1 && start.bname.equals("区外") ) {
+                        if (ammountRegulation == 1 && start.bname.equals("区外")) {
                             limit = start.occurence(t, dest, 1) * 2;
-                            if ( BuildingList.outLink.capacity + occur> limit) {
+                            if (BuildingList.outLink.capacity + occur > limit) {
                                 //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
                                 occur = limit - BuildingList.outLink.capacity;
                             }
@@ -292,7 +294,7 @@ public class Main2 {
 //            System.out.println("-----------------OUTPUT start-------------------");
             // summary
             if (contain(output, 5)) {
-                Output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation);
+                Output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
             }
 
             // standard outputを行う
@@ -304,7 +306,7 @@ public class Main2 {
             //通信規制の方針を比較する
             if (contain(output, 3)) {
                 Output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum);
+                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation,ammountRegulation);
             }
 
             //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ

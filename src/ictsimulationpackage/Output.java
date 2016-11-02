@@ -9,10 +9,11 @@ import org.apache.poi.ss.usermodel.*;
 
 public class Output {
     static ArrayList<double[]> allCallLossRate = new ArrayList<>();
-    static ArrayList<Double> allPointList = new ArrayList();
+    static ArrayList<Double> timePointList = new ArrayList();
+    static ArrayList<Double> ammPointList = new ArrayList();
+    static ArrayList<Double> bothPointList = new ArrayList();
     static ArrayList<Integer> brokenBldgNum = new ArrayList();
     static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
-    static ArrayList<ArrayList<Integer>> minusBrokenBldgId = new ArrayList<>();
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -202,9 +203,9 @@ public class Output {
         Output.output(file, wb);
     }
 
-    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum) {
+    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum, int timeRegulation, int ammountRegulation) {
         //通信規制の方針を比較する
-        String path = timedir + "/regulationMethodDevidedOutput_"  +(loop / 2)+ ".xls";
+        String path = timedir + "/regulationMethodDevidedOutput_"  +(loop / 4)+ ".xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);
@@ -251,11 +252,15 @@ public class Output {
 //			cell.setCellValue(avgHoldTime[t]);
 //		}
         // １時間単位のデータ
-        if (loop % 2 == 1) {
-            sheet = wb.createSheet(mag + "倍_byHour_regulated");
-        } else {
-            sheet = wb.createSheet(mag + "倍_byHour");
+        String sheetName = mag + "倍_";
+        if (ammountRegulation == 1) {
+            sheetName += "ammReg";
         }
+        if (timeRegulation == 1) {
+            sheetName += "_timeReg";
+        }
+
+        sheet = wb.createSheet(sheetName);
 
         row = sheet.createRow(0);
         cell = row.createCell(0);
@@ -302,35 +307,58 @@ public class Output {
 
         allCallLossRate.add(callLossRateH);
 
-        if (loop % 2 == 1) {
+        if (loop % 4 == 3) {
             //最後のループの時
             sheet = wb.createSheet("summary");
 
             double[] rateNonReg = allCallLossRate.get(0);
-            double[] rateReg = allCallLossRate.get(1);
+            double[] rateTimeReg = allCallLossRate.get(1);
+            double[] rateAmmReg = allCallLossRate.get(2);
+            double[] rateBothReg = allCallLossRate.get(3);
 
             row = sheet.createRow(0);
 
             row.createCell(0).setCellValue("noRegulated");
-            row.createCell(1).setCellValue("regulated");
-            row.createCell(2).setCellValue("dif");
-            double difSum = 0;
-            for (int r = 0; r < rateReg.length; r++) {
+            row.createCell(1).setCellValue("timeReg");
+            row.createCell(2).setCellValue("ammReg");
+            row.createCell(3).setCellValue("bothReg");
+            row.createCell(4).setCellValue("timeDif");
+            row.createCell(5).setCellValue("ammDif");
+            row.createCell(6).setCellValue("bothDif");
+            double difTimeSum = 0;
+            double difAmmSum = 0;
+            double difBothSum = 0;
+            for (int r = 0; r < rateNonReg.length; r++) {
                 row = sheet.createRow(r + 1);
                 row.createCell(0).setCellValue(rateNonReg[r]);
-                row.createCell(1).setCellValue(rateReg[r]);
+                row.createCell(1).setCellValue(rateTimeReg[r]);
+                row.createCell(2).setCellValue(rateAmmReg[r]);
+                row.createCell(3).setCellValue(rateBothReg[r]);
 
                 //差分の導出
-                double dif = rateNonReg[r] - rateReg[r];
-                difSum += dif;
-                row.createCell(2).setCellValue(dif);
+                double timeDif = rateNonReg[r] - rateTimeReg[r];
+                double ammDif = rateNonReg[r] - rateAmmReg[r];
+                double bothDif = rateNonReg[r] - rateBothReg[r];
+                difTimeSum += timeDif;
+                difAmmSum += ammDif;
+                difBothSum += bothDif;
+                row.createCell(4).setCellValue(timeDif);
+                row.createCell(5).setCellValue(ammDif);
+                row.createCell(6).setCellValue(bothDif);
             }
-            row.createCell(3).setCellValue(difSum);
-            allPointList.add(difSum);
+            //ポイントの合計
+            row.createCell(4).setCellValue(difTimeSum);
+            row.createCell(5).setCellValue(difAmmSum);
+            row.createCell(6).setCellValue(difBothSum);
+
+            //ポイントの集計
+            timePointList.add(difTimeSum);
+            ammPointList.add(difAmmSum);
+            bothPointList.add(difBothSum);
 
             Building[] list = BuildingList.bldgList;
             int idx = 0;
-            row = sheet.createRow(rateReg.length + 1);
+            row = sheet.createRow(rateNonReg.length + 2);
             row.createCell(idx++).setCellValue("破壊ビル");
             int brokenNum = 0;
             ArrayList<Integer> tmpIdList = new ArrayList<>();
@@ -341,10 +369,6 @@ public class Output {
                     tmpIdList.add(list[i].bid);
                 }
             }
-            if (difSum < 0) {
-                //効果がマイナスだった時
-                minusBrokenBldgId.add(tmpIdList);
-            }
 
             brokenBldgId.add(tmpIdList);
             brokenBldgNum.add(brokenNum);
@@ -354,7 +378,7 @@ public class Output {
     }
 
 
-    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg) {
+    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
 //        Building[] list = BuildingList.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
@@ -382,7 +406,9 @@ public class Output {
             if (amReg == 1) {
                 reg += "通信量規制";
             }
-            filewriter.write("規制方針 : " + reg);
+            filewriter.write("規制方針 : " + reg + "\n");
+            filewriter.write("破壊ビル数limit = " + limit);
+
             filewriter.close();
         } catch (IOException e) {
             System.out.println(e);
@@ -456,43 +482,42 @@ public class Output {
         Row r;
         Building[] bList = BuildingList.bldgList;
         int[] brokenBldgCnt = new int[103];
-        int[] minusBrokenBldgCnt = new int[103];
+
+        r = s.createRow(0);
+        r.createCell(0).setCellValue("");
+        r.createCell(1).setCellValue("timePoint");
+        r.createCell(2).setCellValue("ammPoint");
+        r.createCell(3).setCellValue("bothPoint");
+        r.createCell(4).setCellValue("brokenBldgNum");
 
         //壊れたビルについての集積
-        for(int i = 0; i < allPointList.size();i++) {
-            r = s.createRow(i);
+        for(int i = 0; i < timePointList.size();i++) {
+            r = s.createRow(i + 1);
             r.createCell(0).setCellValue(i);
-            r.createCell(1).setCellValue(allPointList.get(i));
-            r.createCell(2).setCellValue(brokenBldgNum.get(i));
+            r.createCell(1).setCellValue(timePointList.get(i));
+            r.createCell(2).setCellValue(ammPointList.get(i));
+            r.createCell(3).setCellValue(bothPointList.get(i));
+            r.createCell(4).setCellValue(brokenBldgNum.get(i));
 
             ArrayList<Integer> list = brokenBldgId.get(i);
             for(int k = 0; k < list.size();k++) {
                 Building bldg = bList[list.get(k)];
-                r.createCell(3 + k).setCellValue(bldg.bname);
+                r.createCell(5 + k).setCellValue(bldg.bname);
                 brokenBldgCnt[bldg.bid]++;
              }
         }
-        //効果がマイナスのときに壊れていたビルの集積
-        for(int i = 0; i < minusBrokenBldgId.size();i++) {
-            ArrayList<Integer> list = minusBrokenBldgId.get(i);
-            for(int k = 0; k < list.size();k++) {
-                minusBrokenBldgCnt[list.get(k)] ++;
-            }
-        }
 
         //スタートする位置
-        int st = allPointList.size() + 1;
+        int st = timePointList.size() + 1;
 
         r = s.createRow(st);
         r.createCell(0).setCellValue("ビル名");
         r.createCell(1).setCellValue("壊れた回数");
-        r.createCell(2).setCellValue("効果がマイナスのときに壊れた回数");
 
         for(int i = 0;i < brokenBldgCnt.length;i++) {
             r = s.createRow(st + i + 1);
             r.createCell(0).setCellValue(bList[i].bname);
             r.createCell(1).setCellValue(brokenBldgCnt[i]);
-            r.createCell(2).setCellValue(minusBrokenBldgCnt[i]);
         }
         Output.output(file, wb);
     }
