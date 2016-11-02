@@ -1,11 +1,12 @@
 package ictsimulationpackage;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class Building {
     //データ読み込み
     static String[] bldgName = Settings.BldgName();
-    static double[] scale ;
+    static double[] scale;
 
     //変数
     boolean exBuilding = false;//区内中継３ビル
@@ -14,7 +15,6 @@ public class Building {
     String bname;
     Building areaBldg;
     boolean broken = false;
-    double prob = 0;
 
     HashMap<Building, Double> kosu[] = new HashMap[24];
     HashMap<Building, Double> kosuTaken[] = new HashMap[24];
@@ -65,11 +65,28 @@ public class Building {
         scale = Settings.getScale();
     }
 
-    void brokenByQuake() {
-        prob = scale[bid ] / 100;
-        if (Math.random() < prob) {
-            broken = true;
-//            System.out.println(bname + " is broken!");
+    static void brokenByQuake(int limit) {
+        Pair ps[] = new Pair[102];
+        int idx = 0;
+        for (Building bldg : BuildingList.startBldgList) {
+            ps[idx++] = new Pair((Math.pow(scale[bldg.bid], 4) / 30000) / Math.random(), bldg);
+        }
+        Arrays.sort(ps);
+        if (limit == 0) {
+            //破壊数無制限の場合
+            for (int i = 0; i < ps.length; i++) {
+                if (ps[i].prob > 1) {
+                    ps[i].bldg.broken();
+                    System.out.println(ps[i].bldg.bname + " broken");
+                }
+            }
+        } else {
+            int cnt = 0;
+            for (int i = 0; i < ps.length && cnt < limit; i++) {
+                ps[i].bldg.broken();
+                System.out.println(ps[i].bldg.bname + " broken");
+                cnt++;
+            }
         }
     }
 
@@ -191,5 +208,30 @@ public class Building {
     void setGisData(double la, double lon) {
         latitude = la;
         longitude = lon;
+    }
+
+
+    static class Pair implements Comparable {
+        double prob;
+        Building bldg;
+
+        Pair(double a, Building b) {
+            prob = a;
+            bldg = b;
+        }
+
+        public int compareTo(Object other) {
+            Pair p1 = (Pair) other;
+//            return this.prob - ((Pair) other).first; // IDの値に従い昇順で並び替えたい場合
+//         return -(this.prob - ((Pair) other).prob); // IDの値に従い降順で並び替えたい場合
+            double val = (this.prob - ((Pair) other).prob);
+            if (val == 0) {
+                return 0;
+            } else if (val > 0) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
     }
 }

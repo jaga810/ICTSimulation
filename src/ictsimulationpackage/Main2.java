@@ -32,6 +32,9 @@ public class Main2 {
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
 
+        //直下型シナリオにおいて、ビルの破壊数を制限するか->0:制限しない
+        final int brokenBldglimit = 5;
+
         // 破壊リンクの設定 idで設定
         final int brokenLink[] = {};
 
@@ -42,7 +45,7 @@ public class Main2 {
         final double ammount = 0;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] = {0, 3, 5, 6};
+        int output[] = { 3, 5, 6};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
@@ -158,15 +161,13 @@ public class Main2 {
             for (int i = 0; i < endCallList.length; i++) {
                 endCallList[i] = new ArrayList<>();
             }
-            
-            
+
             /*ビルの破壊関連*/
             //地震による影響で壊れるシナリオで使用
             if (scenario == 1 && loop % 2 == 0) {
                 //破壊
-                for (Building bldg : BuildingList.startBldgList) {
-                    bldg.brokenByQuake();
-                }
+                Building.brokenByQuake(brokenBldglimit);
+
             }
 
             //ビル・リンクの破壊
@@ -175,8 +176,6 @@ public class Main2 {
                     bldgs.findLink(brokenLink[i]).broken(ammount);
                 }
 
-                //練馬の破壊関連
-                bldgList[0].broken();
             }
             if (brokenBuilding.length > 0) {
                 for (String bname : brokenBuilding) {
