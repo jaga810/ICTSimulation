@@ -453,7 +453,7 @@ public class Output {
 
 
     //リンクを準に破壊していった場合の結果をアウトプットするもの
-    public static void BreakLinkInOrderOutput(int loopNum, double[] worstCallLossRate, File folder) {
+    public static void BreakLinkInOrderOutput(int loopNum, double[] worstCallLossRate, File folder, int criterion) {
         //ファイルの作成
         String fileName = folder + "/BreakLinkInOrder.xls";
         File file = new File(fileName);
@@ -464,7 +464,14 @@ public class Output {
         Sheet sheet;
         sheet = wb.createSheet("worstCallLossRate");
         for (int i = 0; i < loopNum; i++) {
-            sheet.createRow(i).createCell(0).setCellValue(worstCallLossRate[i]);
+            double val = 0;
+            switch (criterion) {
+                case 0 :
+                    val =  worstCallLossRate[i];
+                    break;
+                case 1 :
+            }
+            sheet.createRow(i).createCell(0).setCellValue(val);
         }
         Output.output(file, wb);
     }
@@ -570,5 +577,16 @@ public class Output {
             }
         }
         return val;
+    }
+
+    public static double aveInArray(double[] array) {
+        if (array.length == 0) {
+            return 0;
+        }
+        double sum = 0;
+        for(int i = 0; i < array.length;i ++) {
+            sum += array[i];
+        }
+        return sum / array.length;
     }
 }

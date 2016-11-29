@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 
@@ -24,22 +25,25 @@ public class Main2 {
     public static void main(String args[]) {
         /*各種設定*/
         // ループの回数
-        final int loopNum = 4 * 20;
+        final int loopNum = 102;
 
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
-        final int scenario = 1;
+        final int scenario = 0;
 
         //直下型シナリオにおいて、ビルの破壊数を制限するか->0:制限しない
-        final int brokenBldglimit = 10;
+        final int brokenBldglimit = 0;
 
         //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
         final int[][] method = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 
         // 破壊リンクの設定 idで設定
         final int brokenLink[] = {};
+
+        //評価基準 0:呼損率の最大値 1:呼損率の平均 2:時間積分した呼損率 3:全損失呼の数 4:呼損率のMax-Min
+        final int criterion = 0;
 
         // 破壊ビルの設定
         final String brokenBuilding[] = {};
@@ -48,10 +52,13 @@ public class Main2 {
         final double ammount = 0;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] = {3, 5, 6};
+        int output[] = {4};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
+
+        //ループ毎の平均呼損率
+        double[] aveCallLossRate = new double[loopNum];
 
         // 計算時間の算出
         double calcTime = System.nanoTime();
@@ -185,14 +192,17 @@ public class Main2 {
                 }
             }
 
-            // 区内リンクを順に破壊する用
-            // bldgs.findLink(loop).broken(ammount);
+            if (contain(output, 4)) {
+                // 区内リンクを順に破壊する用
 
-            // 区内中継リンクを破壊する
-            // bldgs.exLinkList.get(loop).broken(ammount);
+                bldgs.findLink(loop).broken(ammount);
 
-            // 区外リンクを破壊する
-            // bldgs.outLink.broken(ammount);
+                // 区内中継リンクを破壊する
+                // bldgs.exLinkList.get(loop).broken(ammount);
+
+                // 区外リンクを破壊する
+                // bldgs.outLink.broken(ammount);
+            }
 
 
             System.out.print("loop : " + (loop + 1) + " , mag : " + mag + " ");
@@ -288,8 +298,16 @@ public class Main2 {
             }
 
 
-            // 呼損率の最大値格納
-            worstCallLossRate[loop] = Output.maxInArray(callLossRate);
+            switch (criterion) {
+                case 0:
+                    // 呼損率の最大値格納
+                    worstCallLossRate[loop] = Output.maxInArray(callLossRate);
+                    break;
+                case 1:
+                    //平均呼損率の格納
+                    aveCallLossRate[loop] = Output.aveInArray(callLossRate);
+            }
+
 
 //            System.out.println("-----------------OUTPUT start-------------------");
             // summary
@@ -306,7 +324,7 @@ public class Main2 {
             //通信規制の方針を比較する
             if (contain(output, 3)) {
                 Output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation,ammountRegulation);
+                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation, ammountRegulation);
             }
 
             //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
@@ -332,8 +350,8 @@ public class Main2 {
 
 
         // //リンクを順に破壊するときのためのExcel出力
-        if (contain(output, 1)) {
-            Output.BreakLinkInOrderOutput(loopNum, worstCallLossRate, timedir);
+        if (contain(output, 4)) {
+            Output.BreakLinkInOrderOutput(loopNum, worstCallLossRate, timedir, criterion);
         }
 
 
