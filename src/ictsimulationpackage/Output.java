@@ -9,10 +9,11 @@ import org.apache.poi.ss.usermodel.*;
 
 public class Output {
     static ArrayList<double[]> allCallLossRate = new ArrayList<>();
-    static ArrayList<Double> timePointList = new ArrayList();
-    static ArrayList<Double> ammPointList = new ArrayList();
-    static ArrayList<Double> bothPointList = new ArrayList();
-    static ArrayList<Integer> brokenBldgNum = new ArrayList();
+    static ArrayList<double[]> allCallLoss = new ArrayList<>();
+    static ArrayList<Double> timePointList[] ;
+    static ArrayList<Double> ammPointList[];
+    static ArrayList<Double> bothPointList[];
+    static ArrayList<Integer> brokenBldgNum = new ArrayList<>();
     static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
@@ -203,9 +204,25 @@ public class Output {
         Output.output(file, wb);
     }
 
-    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum, int timeRegulation, int ammountRegulation) {
+    public static void regulaitonMethodDevidedInitialize(int criNum) {
+        timePointList = new ArrayList[criNum];
+        ammPointList = new ArrayList[criNum];
+        bothPointList = new ArrayList[criNum];
+        //リストの初期化
+        for (int i = 0; i < criNum; i++) {
+            timePointList [i] = new ArrayList<>();
+            ammPointList[i] = new ArrayList<>();
+            bothPointList[i] = new ArrayList<>();
+        }
+
+    }
+
+    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
+                                               int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
+                                               int timeRegulation, int ammountRegulation,int criNum) {
+
         //通信規制の方針を比較する
-        String path = timedir + "/regulationMethodDevidedOutput_"  +(loop / 4)+ ".xls";
+        String path = timedir + "/regulationMethodDevidedOutput_" + (loop / 4) + ".xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);
@@ -306,73 +323,311 @@ public class Output {
         sheet.createRow(27).createCell(0).setCellValue(worst_loss_rate);
 
         allCallLossRate.add(callLossRateH);
+        allCallLoss.add(callLossH);
 
         if (loop % 4 == 3) {
             //最後のループの時
-            sheet = wb.createSheet("summary");
+            for(int criterion = 0; criterion < criNum; criterion++){
+                //変数初期化
+                String criText = "";
+                double[] rateNonReg ;
+                double[] rateTimeReg;
+                double[] rateAmmReg ;
+                double[] rateBothReg;
+                double difTimeSum;
+                double difAmmSum;
+                double difBothSum;
+                double timeDif;
+                double ammDif;
+                double bothDif;
+                switch (criterion) {
+                    case 0:
+                        criText = "_maxCLR";
+                        sheet = wb.createSheet("summary" + criText);
 
-            double[] rateNonReg = allCallLossRate.get(0);
-            double[] rateTimeReg = allCallLossRate.get(1);
-            double[] rateAmmReg = allCallLossRate.get(2);
-            double[] rateBothReg = allCallLossRate.get(3);
+                        rateNonReg = allCallLossRate.get(0);
+                        rateTimeReg = allCallLossRate.get(1);
+                        rateAmmReg = allCallLossRate.get(2);
+                        rateBothReg = allCallLossRate.get(3);
 
-            row = sheet.createRow(0);
+                        row = sheet.createRow(0);
 
-            row.createCell(0).setCellValue("noRegulated");
-            row.createCell(1).setCellValue("timeReg");
-            row.createCell(2).setCellValue("ammReg");
-            row.createCell(3).setCellValue("bothReg");
-            row.createCell(4).setCellValue("timeDif");
-            row.createCell(5).setCellValue("ammDif");
-            row.createCell(6).setCellValue("bothDif");
-            double difTimeSum = 0;
-            double difAmmSum = 0;
-            double difBothSum = 0;
-            for (int r = 0; r < rateNonReg.length; r++) {
-                row = sheet.createRow(r + 1);
-                row.createCell(0).setCellValue(rateNonReg[r]);
-                row.createCell(1).setCellValue(rateTimeReg[r]);
-                row.createCell(2).setCellValue(rateAmmReg[r]);
-                row.createCell(3).setCellValue(rateBothReg[r]);
+                        row.createCell(0).setCellValue("noRegulated");
+                        row.createCell(1).setCellValue("timeReg");
+                        row.createCell(2).setCellValue("ammReg");
+                        row.createCell(3).setCellValue("bothReg");
+                        row.createCell(4).setCellValue("timeDif");
+                        row.createCell(5).setCellValue("ammDif");
+                        row.createCell(6).setCellValue("bothDif");
+                        difTimeSum = 0;
+                        difAmmSum = 0;
+                        difBothSum = 0;
+                        //出力
+                        row = sheet.createRow(1);
+                        row.createCell(0).setCellValue(maxInArray(rateNonReg));
+                        row.createCell(1).setCellValue(maxInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(maxInArray(rateAmmReg));
+                        row.createCell(3).setCellValue(maxInArray(rateBothReg));
 
-                //差分の導出
-                double timeDif = rateNonReg[r] - rateTimeReg[r];
-                double ammDif = rateNonReg[r] - rateAmmReg[r];
-                double bothDif = rateNonReg[r] - rateBothReg[r];
-                difTimeSum += timeDif;
-                difAmmSum += ammDif;
-                difBothSum += bothDif;
-                row.createCell(4).setCellValue(timeDif);
-                row.createCell(5).setCellValue(ammDif);
-                row.createCell(6).setCellValue(bothDif);
-            }
-            //ポイントの合計
-            row.createCell(4).setCellValue(difTimeSum);
-            row.createCell(5).setCellValue(difAmmSum);
-            row.createCell(6).setCellValue(difBothSum);
+                        //差分の導出
+                        timeDif = maxInArray(rateNonReg) - maxInArray(rateTimeReg);
+                        ammDif =  maxInArray(rateNonReg) - maxInArray(rateAmmReg  );
+                        bothDif = maxInArray(rateNonReg) - maxInArray(rateBothReg);
 
-            //ポイントの集計
-            timePointList.add(difTimeSum);
-            ammPointList.add(difAmmSum);
-            bothPointList.add(difBothSum);
+                        difTimeSum += timeDif;
+                        difAmmSum += ammDif;
+                        difBothSum += bothDif;
 
-            Building[] list = BuildingList.bldgList;
-            int idx = 0;
-            row = sheet.createRow(rateNonReg.length + 2);
-            row.createCell(idx++).setCellValue("破壊ビル");
-            int brokenNum = 0;
-            ArrayList<Integer> tmpIdList = new ArrayList<>();
-            for(int i = 0 ; i < list.length;i++) {
-                if (list[i].broken) {
-                    row.createCell(idx++).setCellValue(list[i].bname);
-                    brokenNum ++;
-                    tmpIdList.add(list[i].bid);
+                        row.createCell(4).setCellValue(timeDif);
+                        row.createCell(5).setCellValue(ammDif);
+                        row.createCell(6).setCellValue(bothDif);
+
+                        //ポイントの合計
+                        row.createCell(4).setCellValue(difTimeSum);
+                        row.createCell(5).setCellValue(difAmmSum);
+                        row.createCell(6).setCellValue(difBothSum);
+
+                        //ポイントの集計
+                        timePointList[criterion].add(difTimeSum);
+                        ammPointList[criterion].add(difAmmSum);
+                        bothPointList[criterion].add(difBothSum);
+                        break;
+                    case 1:
+                        criText = "_aveCLR";
+                        sheet = wb.createSheet("summary" + criText);
+
+                        rateNonReg = allCallLossRate.get(0);
+                        rateTimeReg = allCallLossRate.get(1);
+                        rateAmmReg = allCallLossRate.get(2);
+                        rateBothReg = allCallLossRate.get(3);
+
+                        row = sheet.createRow(0);
+
+                        row.createCell(0).setCellValue("noRegulated");
+                        row.createCell(1).setCellValue("timeReg");
+                        row.createCell(2).setCellValue("ammReg");
+                        row.createCell(3).setCellValue("bothReg");
+                        row.createCell(4).setCellValue("timeDif");
+                        row.createCell(5).setCellValue("ammDif");
+                        row.createCell(6).setCellValue("bothDif");
+                        difTimeSum = 0;
+                        difAmmSum = 0;
+                        difBothSum = 0;
+
+                        //出力
+                        row = sheet.createRow(1);
+                        row.createCell(0).setCellValue(aveInArray(rateNonReg));
+                        row.createCell(1).setCellValue(aveInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(aveInArray(rateAmmReg));
+                        row.createCell(3).setCellValue(aveInArray(rateBothReg));
+
+                        //差分の導出
+                        timeDif = aveInArray(rateNonReg) - aveInArray(rateTimeReg);
+                        ammDif =  aveInArray(rateNonReg) - aveInArray(rateAmmReg );
+                        bothDif = aveInArray(rateNonReg) - aveInArray(rateBothReg);
+
+                        difTimeSum += timeDif;
+                        difAmmSum += ammDif;
+                        difBothSum += bothDif;
+
+                        row.createCell(4).setCellValue(timeDif);
+                        row.createCell(5).setCellValue(ammDif);
+                        row.createCell(6).setCellValue(bothDif);
+
+                        //ポイントの合計
+                        row.createCell(4).setCellValue(difTimeSum);
+                        row.createCell(5).setCellValue(difAmmSum);
+                        row.createCell(6).setCellValue(difBothSum);
+
+                        //ポイントの集計
+                        timePointList[criterion].add(difTimeSum);
+                        ammPointList[criterion].add(difAmmSum);
+                        bothPointList[criterion].add(difBothSum);
+                        break;
+                    case 2:
+                        //シート作成
+                        criText = "_sumCLR";
+                        sheet = wb.createSheet("summary" + criText);
+
+                        rateNonReg = allCallLossRate.get(0);
+                        rateTimeReg = allCallLossRate.get(1);
+                        rateAmmReg = allCallLossRate.get(2);
+                        rateBothReg = allCallLossRate.get(3);
+
+                        row = sheet.createRow(0);
+
+                        row.createCell(0).setCellValue("noRegulated");
+                        row.createCell(1).setCellValue("timeReg");
+                        row.createCell(2).setCellValue("ammReg");
+                        row.createCell(3).setCellValue("bothReg");
+                        row.createCell(4).setCellValue("timeDif");
+                        row.createCell(5).setCellValue("ammDif");
+                        row.createCell(6).setCellValue("bothDif");
+                        difTimeSum = 0;
+                        difAmmSum = 0;
+                        difBothSum = 0;
+                        for (int r = 0; r < rateNonReg.length; r++) {
+                            //出力
+                            row = sheet.createRow(r + 1);
+                            row.createCell(0).setCellValue(rateNonReg[r]);
+                            row.createCell(1).setCellValue(rateTimeReg[r]);
+                            row.createCell(2).setCellValue(rateAmmReg[r]);
+                            row.createCell(3).setCellValue(rateBothReg[r]);
+
+                            //差分の導出
+                            timeDif = rateNonReg[r] - rateTimeReg[r];
+                            ammDif = rateNonReg[r] - rateAmmReg[r];
+                            bothDif = rateNonReg[r] - rateBothReg[r];
+
+                            difTimeSum += timeDif;
+                            difAmmSum += ammDif;
+                            difBothSum += bothDif;
+
+                            row.createCell(4).setCellValue(timeDif);
+                            row.createCell(5).setCellValue(ammDif);
+                            row.createCell(6).setCellValue(bothDif);
+                        }
+                        //ポイントの合計
+                        row.createCell(4).setCellValue(difTimeSum);
+                        row.createCell(5).setCellValue(difAmmSum);
+                        row.createCell(6).setCellValue(difBothSum);
+
+                        //ポイントの集計
+                        timePointList[criterion].add(difTimeSum);
+                        ammPointList[criterion].add(difAmmSum);
+                        bothPointList[criterion].add(difBothSum);
+                        break;
+                    case 3:
+                        criText = "_sumCL";
+                        sheet = wb.createSheet("summary" + criText);
+
+                        rateNonReg =  allCallLoss.get(0);
+                        rateTimeReg = allCallLoss.get(1);
+                        rateAmmReg =  allCallLoss.get(2);
+                        rateBothReg = allCallLoss.get(3);
+                        row = sheet.createRow(0);
+
+                        row.createCell(0).setCellValue("noRegulated");
+                        row.createCell(1).setCellValue("timeReg");
+                        row.createCell(2).setCellValue("ammReg");
+                        row.createCell(3).setCellValue("bothReg");
+                        row.createCell(4).setCellValue("timeDif");
+                        row.createCell(5).setCellValue("ammDif");
+                        row.createCell(6).setCellValue("bothDif");
+                        difTimeSum = 0;
+                        difAmmSum = 0;
+                        difBothSum = 0;
+                        for (int r = 0; r < rateNonReg.length; r++) {
+                            //出力
+                            row = sheet.createRow(r + 1);
+                            row.createCell(0).setCellValue(rateNonReg[r]);
+                            row.createCell(1).setCellValue(rateTimeReg[r]);
+                            row.createCell(2).setCellValue(rateAmmReg[r]);
+                            row.createCell(3).setCellValue(rateBothReg[r]);
+
+                            //差分の導出
+                            timeDif = rateNonReg[r] - rateTimeReg[r];
+                            ammDif = rateNonReg[r] - rateAmmReg[r];
+                            bothDif = rateNonReg[r] - rateBothReg[r];
+
+                            difTimeSum += timeDif;
+                            difAmmSum += ammDif;
+                            difBothSum += bothDif;
+
+                            row.createCell(4).setCellValue(timeDif);
+                            row.createCell(5).setCellValue(ammDif);
+                            row.createCell(6).setCellValue(bothDif);
+                        }
+                        //ポイントの合計
+                        row.createCell(4).setCellValue(difTimeSum);
+                        row.createCell(5).setCellValue(difAmmSum);
+                        row.createCell(6).setCellValue(difBothSum);
+
+                        //ポイントの集計
+                        timePointList[criterion].add(difTimeSum);
+                        ammPointList[criterion].add(difAmmSum);
+                        bothPointList[criterion].add(difBothSum);
+                        break;
+                    case 4:
+                        criText = "_minMaxCLR";
+                        sheet = wb.createSheet("summary" + criText);
+
+                        rateNonReg =  allCallLossRate.get(0);
+                        rateTimeReg = allCallLossRate.get(1);
+                        rateAmmReg =  allCallLossRate.get(2);
+                        rateBothReg = allCallLossRate.get(3);
+                        row = sheet.createRow(0);
+
+                        row.createCell(0).setCellValue("noRegulated");
+                        row.createCell(1).setCellValue("timeReg");
+                        row.createCell(2).setCellValue("ammReg");
+                        row.createCell(3).setCellValue("bothReg");
+                        row.createCell(4).setCellValue("timeDif");
+                        row.createCell(5).setCellValue("ammDif");
+                        row.createCell(6).setCellValue("bothDif");
+                        difTimeSum = 0;
+                        difAmmSum = 0;
+                        difBothSum = 0;
+
+                        //出力
+                        row = sheet.createRow(1);
+                        row.createCell(0).setCellValue(minMaxInArray(rateNonReg ));
+                        row.createCell(1).setCellValue(minMaxInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(minMaxInArray(rateAmmReg ));
+                        row.createCell(3).setCellValue(minMaxInArray(rateBothReg));
+
+                        //差分の導出
+                        timeDif = minMaxInArray(rateNonReg)-  minMaxInArray(rateTimeReg);
+                        ammDif =  minMaxInArray(rateNonReg) - minMaxInArray(rateAmmReg );
+                        bothDif = minMaxInArray(rateNonReg) - minMaxInArray(rateBothReg);
+
+                        difTimeSum += timeDif;
+                        difAmmSum += ammDif;
+                        difBothSum += bothDif;
+
+                        row.createCell(4).setCellValue(timeDif);
+                        row.createCell(5).setCellValue(ammDif);
+                        row.createCell(6).setCellValue(bothDif);
+
+                        //ポイントの合計
+                        row.createCell(4).setCellValue(difTimeSum);
+                        row.createCell(5).setCellValue(difAmmSum);
+                        row.createCell(6).setCellValue(difBothSum);
+
+                        //ポイントの集計
+                        timePointList[criterion].add(difTimeSum);
+                        ammPointList[criterion].add(difAmmSum);
+                        bothPointList[criterion].add(difBothSum);
+                        break;
                 }
+
             }
 
-            brokenBldgId.add(tmpIdList);
-            brokenBldgNum.add(brokenNum);
+            //ビル破壊情報の収集
+            if(brokenBldgId.size() <= loop) {
+                Building[] list = BuildingList.bldgList;
+                int idx = 0;
+
+                //上の表記の二行あとから
+                row = sheet.createRow(allCallLossRate.get(0).length+ 2);
+                row.createCell(idx++).setCellValue("破壊ビル");
+                int brokenNum = 0;
+                ArrayList<Integer> tmpIdList = new ArrayList<>();
+                for (int i = 0; i < list.length; i++) {
+                    if (list[i].broken) {
+                        row.createCell(idx++).setCellValue(list[i].bname);
+                        brokenNum++;
+                        tmpIdList.add(list[i].bid);
+                    }
+                }
+
+                brokenBldgId.add(tmpIdList);
+                brokenBldgNum.add(brokenNum);
+            }
+
+            //1シナリオの比較が終わったら初期化
             allCallLossRate.clear();
+            allCallLoss.clear();
         }
         Output.output(file, wb);
     }
@@ -415,13 +670,13 @@ public class Output {
         }
     }
 
-    public static void StandardOutput(int timeLength, File timedir, double[] callLossRate, int loop) {
+    public static void StandardOutput(int timeLength, File timedir, double[] arr, int loop) {
         double capHis[][] = new double[102][timeLength];
         ArrayList<Link> links = BuildingList.allLinkList;
 
-        for(int i = 0 ; i < 102;i++) {
+        for (int i = 0; i < 102; i++) {
             Link link = links.get(i);
-            for(int t =0 ; t < timeLength;t++) {
+            for (int t = 0; t < timeLength; t++) {
                 capHis[i][t] = link.capHis[t];
             }
         }
@@ -446,37 +701,54 @@ public class Output {
         ;
         sheet = wb.createSheet("lossRate_" + loop);
         for (int t = 0; t < timeLength; t++) {
-            sheet.createRow(t).createCell(0).setCellValue(callLossRate[t]);
+            sheet.createRow(t).createCell(0).setCellValue(arr[t]);
         }
         Output.output(file, wb);
     }
 
 
     //リンクを準に破壊していった場合の結果をアウトプットするもの
-    public static void BreakLinkInOrderOutput(int loopNum, double[] worstCallLossRate, File folder, int criterion) {
+    public static void BreakLinkInOrderOutput(int loopNum, double[] array, File folder, int criterion) {
         //ファイルの作成
-        String fileName = folder + "/BreakLinkInOrder.xls";
+        String cri = "";
+        String sheetName = "";
+        switch (criterion) {
+            case 0:
+                cri = "_maxCLR";
+                sheetName = "maxCLR";
+                break;
+            case 1:
+                cri = "_aveCLR";
+                sheetName = "aveCLR";
+                break;
+            case 2:
+                cri = "_sumCLR";
+                sheetName = "sumCLR";
+                break;
+            case 3:
+                cri = "_sumCL";
+                sheetName = "sumCL";
+                break;
+            case 4:
+                cri = "_minMaxCLR";
+                sheetName = "minMaxCLR";
+                break;
+        }
+        String fileName = folder + "/BreakLinkInOrde" + cri + ".xls";
         File file = new File(fileName);
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);
 
         //sheetの作成
         Sheet sheet;
-        sheet = wb.createSheet("worstCallLossRate");
+        sheet = wb.createSheet(sheetName);
         for (int i = 0; i < loopNum; i++) {
-            double val = 0;
-            switch (criterion) {
-                case 0 :
-                    val =  worstCallLossRate[i];
-                    break;
-                case 1 :
-            }
-            sheet.createRow(i).createCell(0).setCellValue(val);
+            sheet.createRow(i).createCell(0).setCellValue(array[i]);
         }
         Output.output(file, wb);
     }
 
-    static void regulationPointOutput(File folder) {
+    static void regulationPointOutput(File folder,int criNum) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
@@ -484,49 +756,81 @@ public class Output {
         wb = Output.getWorkbook(file, wb);
 
         //sheetの作成
-        Sheet s;
-        s = wb.createSheet("summary");
+        Sheet s = wb.createSheet("init");
         Row r;
         Building[] bList = BuildingList.bldgList;
         int[] brokenBldgCnt = new int[103];
 
-        r = s.createRow(0);
-        r.createCell(0).setCellValue("");
-        r.createCell(1).setCellValue("timePoint");
-        r.createCell(2).setCellValue("ammPoint");
-        r.createCell(3).setCellValue("bothPoint");
-        r.createCell(4).setCellValue("brokenBldgNum");
+        for(int criterion = 0; criterion < criNum ; criterion++){
+            String cri ="";
+            switch (criterion) {
+                case 0:
+                    cri = "_maxCLR";
+                    break;
+                case 1:
+                    cri = "_aveCLR";
+                    break;
+                case 2:
+                    cri = "_sumCLR";
+                    break;
+                case 3:
+                    cri = "_sumCL";
+                    break;
+                case 4:
+                    cri = "_minMaxCLR";
+                    break;
+            }
+            s = wb.createSheet("summary" + cri);
 
-        //壊れたビルについての集積
-        for(int i = 0; i < timePointList.size();i++) {
-            r = s.createRow(i + 1);
-            r.createCell(0).setCellValue(i);
-            r.createCell(1).setCellValue(timePointList.get(i));
-            r.createCell(2).setCellValue(ammPointList.get(i));
-            r.createCell(3).setCellValue(bothPointList.get(i));
-            r.createCell(4).setCellValue(brokenBldgNum.get(i));
+            r = s.createRow(0);
+            r.createCell(0).setCellValue("");
+            r.createCell(1).setCellValue("timePoint");
+            r.createCell(2).setCellValue("ammPoint");
+            r.createCell(3).setCellValue("bothPoint");
+            r.createCell(4).setCellValue("brokenBldgNum");
 
-            ArrayList<Integer> list = brokenBldgId.get(i);
-            for(int k = 0; k < list.size();k++) {
-                Building bldg = bList[list.get(k)];
-                r.createCell(5 + k).setCellValue(bldg.bname);
-                brokenBldgCnt[bldg.bid]++;
-             }
+            //評価値の出力
+            for (int i = 0; i < timePointList[criterion].size(); i++) {
+                r = s.createRow(i + 1);
+                r.createCell(0).setCellValue(i);
+                r.createCell(1).setCellValue(timePointList[criterion].get(i));
+                r.createCell(2).setCellValue(ammPointList[criterion].get(i));
+                r.createCell(3).setCellValue(bothPointList[criterion].get(i));
+                r.createCell(4).setCellValue(brokenBldgNum.get(i));
+
+                ArrayList<Integer> list = brokenBldgId.get(i);
+                for (int k = 0; k < list.size(); k++) {
+                    Building bldg = bList[list.get(k)];
+                    r.createCell(5 + k).setCellValue(bldg.bname);
+                    brokenBldgCnt[bldg.bid]++;
+                }
+            }
         }
 
         //スタートする位置
-        int st = timePointList.size() + 1;
+        int st = timePointList[0].size() + 1;
 
         r = s.createRow(st);
         r.createCell(0).setCellValue("ビル名");
         r.createCell(1).setCellValue("壊れた回数");
 
-        for(int i = 0;i < brokenBldgCnt.length;i++) {
+        for (int i = 0; i < brokenBldgCnt.length; i++) {
             r = s.createRow(st + i + 1);
             r.createCell(0).setCellValue(bList[i].bname);
             r.createCell(1).setCellValue(brokenBldgCnt[i]);
         }
         Output.output(file, wb);
+
+        //初期化
+        allCallLossRate.clear();
+        allCallLoss.clear();
+        for(int i = 0 ;i < timePointList.length;i++) {
+            timePointList[i].clear();
+            ammPointList[i].clear();
+            bothPointList[i].clear();
+            brokenBldgNum.clear();
+            brokenBldgId.clear();
+        }
     }
 
     static double[] arrayIntoHour(double[] array) {
@@ -579,14 +883,55 @@ public class Output {
         return val;
     }
 
+    public static double minInArray(double[] array) {
+        if (array.length == 0) {
+            return 0;
+        }
+        double val = Double.MAX_VALUE;
+        for (int i = 0; i < array.length; i++) {
+            if (val > array[i]) {
+                val = array[i];
+            }
+        }
+        return val;
+    }
+
     public static double aveInArray(double[] array) {
         if (array.length == 0) {
             return 0;
         }
+        double sum = sumInArray(array);
+
+        return sum / array.length;
+    }
+
+    public static double sumInArray(double[] array) {
+        if (array.length == 0) {
+            return 0;
+        }
         double sum = 0;
-        for(int i = 0; i < array.length;i ++) {
+        for (int i = 0; i < array.length; i++) {
             sum += array[i];
         }
-        return sum / array.length;
+        return sum;
+    }
+
+    public static int sumInArray(int[] array) {
+        if (array.length == 0) {
+            return 0;
+        }
+        int sum = 0;
+        for (int i = 0; i < array.length; i++) {
+            sum += array[i];
+        }
+        return sum;
+    }
+
+    public static double minMaxInArray(double array[]) {
+        if (array.length == 0) {
+            return 0;
+        }
+
+        return maxInArray(array) - minInArray(array);
     }
 }

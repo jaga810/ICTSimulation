@@ -23,27 +23,37 @@ import java.util.Collections;
 
 public class Main2 {
     public static void main(String args[]) {
-        /*各種設定*/
+        /**連続でシミュレーションを回すときに使う**/
+        BuildingList bldgs = new BuildingList(102);
+        for(int i = 1 ; i < 13;i++) {
+            System.out.println("brokenBldgLimit : " + i);
+            run(i, bldgs);
+        }
+    }
+    public static void run(final int brokenBldglimit, final BuildingList bldgs) {
+
+        /****各種設定****/
+
         // ループの回数
-        final int loopNum = 102;
+        final int loopNum = 4 * 20;
 
         //outputするルートとなるフォルダ
         final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
-        final int scenario = 0;
+        final int scenario = 1;
 
         //直下型シナリオにおいて、ビルの破壊数を制限するか->0:制限しない
-        final int brokenBldglimit = 0;
+//        final int brokenBldglimit = 2;
 
-        //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
-        final int[][] method = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+        //評価基準 0:呼損率の最大値 1:呼損率の平均 2:時間積分した呼損率 3:全損失呼の数 4:呼損率のMax-Min 5:全て
+        final int criterion = 5;
+
+        //評価基準全体の呼数
+        final int criNum = 5;
 
         // 破壊リンクの設定 idで設定
         final int brokenLink[] = {};
-
-        //評価基準 0:呼損率の最大値 1:呼損率の平均 2:時間積分した呼損率 3:全損失呼の数 4:呼損率のMax-Min
-        final int criterion = 0;
 
         // 破壊ビルの設定
         final String brokenBuilding[] = {};
@@ -51,14 +61,34 @@ public class Main2 {
         //破壊時に元の容量の何倍に設定するか
         final double ammount = 0;
 
+        //需要を元の呼の発生量の何倍に設定するか
+        int mag = 5;
+
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] = {4};
+        int output[] = {3,6};
+
+        //規制の書け方 0:規制なし/手動規制 1: 4角規制方針の比較
+        int regMethod = 1;
+
+        /*** 初期化関連 ***/
+
+        //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
+        final int[][] method = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 
         // ループ毎の最大呼損率
         double[] worstCallLossRate = new double[loopNum];
 
         //ループ毎の平均呼損率
         double[] aveCallLossRate = new double[loopNum];
+
+        //ループ毎の呼損率の合計
+        double[] sumCallLossRate = new double[loopNum];
+
+        //ループ毎の呼損率の合計
+        double[] sumCallLoss = new double[loopNum];
+
+        //ループ毎の呼損率のmax-min
+        double[] minMaxCallLossRate = new double[loopNum];
 
         // 計算時間の算出
         double calcTime = System.nanoTime();
@@ -78,7 +108,7 @@ public class Main2 {
         Calendar c = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
         String date = sdf.format(c.getTime());
-        sdf = new SimpleDateFormat("hh_mm_ss");
+        sdf = new SimpleDateFormat("HH_mm_ss");
         String time = sdf.format(c.getTime());
 
         // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
@@ -96,7 +126,7 @@ public class Main2 {
         new Call(timeLength);
 
         // ビルディングリストオブジェクトの作成
-        BuildingList bldgs = new BuildingList(102);
+//        BuildingList bldgs = new BuildingList(102);
 
         // 全てのリンク情報の取得
         ArrayList<Link> allLinks = bldgs.allLinkList;
@@ -108,24 +138,31 @@ public class Main2 {
         Building.getScale();
         loop:
         for (int loop = 0; loop < loopNum; loop++) {
+            /***通信規制の設定***/
             // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
-            int timeRegulation = method[loop % 4][0];
-            HoldingTime.method = timeRegulation;
-
+            int timeRegulation = 0;
             //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = method[loop % 4][1];
+            int ammountRegulation = 0;
+            switch (regMethod) {
+                case 0:
+                    HoldingTime.method = 0;
+                    ammountRegulation = 0;
+                    break;
+                case 1:
+                    timeRegulation = method[loop % 4][0];
+                    HoldingTime.method = timeRegulation;
+                    ammountRegulation = method[loop % 4][1];
+                    break;
+            }
 
-
+            /***initialization***/
             // Callの持続時間の方針: 0:制限なし 1:１分まで
             Call.reset();
-            
-            /*initialization*/
+
             // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
             if (scenario == 0 || loop % 4 == 0) {
                 bldgs.resetBroken();
             }
-
-            int mag = 5; // 需要が何倍か
 
             // CallExist[t] = 時刻tに存在する呼の数
             int callExist[] = new int[timeLength];
@@ -171,12 +208,11 @@ public class Main2 {
                 endCallList[i] = new ArrayList<>();
             }
 
-            /*ビルの破壊関連*/
+            /***施設の破壊関連***/
             //地震による影響で壊れるシナリオで使用
             if (scenario == 1 && loop % 4 == 0) {
                 //破壊
                 Building.brokenByQuake(brokenBldglimit);
-
             }
 
             //ビル・リンクの破壊
@@ -306,6 +342,27 @@ public class Main2 {
                 case 1:
                     //平均呼損率の格納
                     aveCallLossRate[loop] = Output.aveInArray(callLossRate);
+                    break;
+                case 2:
+                    //呼損率の合計の格納
+                    sumCallLossRate[loop] = Output.sumInArray(callLossRate);
+                    break;
+                case 3:
+                    //全損失呼の数の格納
+                    sumCallLoss[loop] = Output.sumInArray(callLoss);
+                    break;
+                case 4:
+                    //呼損率のmin-max
+                    minMaxCallLossRate[loop] = Output.minMaxInArray(callLossRate);
+                    break;
+                case 5:
+                    //全て記録
+                    worstCallLossRate[loop] = Output.maxInArray(callLossRate);
+                    aveCallLossRate[loop] = Output.aveInArray(callLossRate);
+                    sumCallLossRate[loop] = Output.sumInArray(callLossRate);
+                    sumCallLoss[loop] = Output.sumInArray(callLoss);
+                    minMaxCallLossRate[loop] = Output.minMaxInArray(callLossRate);
+                    break;
             }
 
 
@@ -323,13 +380,23 @@ public class Main2 {
 
             //通信規制の方針を比較する
             if (contain(output, 3)) {
+                if (loop == 0) {
+                    Output.regulaitonMethodDevidedInitialize(criNum);
+                }
+
                 Output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation, ammountRegulation);
+                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation, ammountRegulation, criNum);
+
+
             }
 
+
             //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
-            if (contain(output, 6) && loop == loopNum - 1) {
-                Output.regulationPointOutput(timedir);
+            if (contain(output, 6) && loop == loopNum - 1 && criterion == 5) {
+                Output.regulationPointOutput(timedir, criNum);
+
+            } else if (contain(output, 6) && loop == loopNum - 1) {
+                Output.regulationPointOutput(timedir, 0);
             }
 
             //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
@@ -351,7 +418,24 @@ public class Main2 {
 
         // //リンクを順に破壊するときのためのExcel出力
         if (contain(output, 4)) {
-            Output.BreakLinkInOrderOutput(loopNum, worstCallLossRate, timedir, criterion);
+            double arr[] = null;
+            switch (criterion) {
+                case 0:
+                    arr = worstCallLossRate;
+                    break;
+                case 1:
+                    arr = aveCallLossRate;
+                    break;
+                case 2:
+                    arr = sumCallLossRate;
+                    break;
+                case 3:
+                    arr = sumCallLoss;
+                    break;
+                case 4:
+                    arr = minMaxCallLossRate;
+            }
+            Output.BreakLinkInOrderOutput(loopNum, arr, timedir, criterion);
         }
 
 
@@ -380,4 +464,5 @@ public class Main2 {
         }
         return false;
     }
+
 }
