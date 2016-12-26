@@ -22,23 +22,43 @@ import java.util.Calendar;
 import java.util.Collections;
 
 public class Main2 {
+    /**連続でシミュレーションを回すときに使う**/
     public static void main(String args[]) {
-        /**連続でシミュレーションを回すときに使う**/
-        BuildingList bldgs = new BuildingList(102);
-        for(int i = 1 ; i < 13;i++) {
-            System.out.println("brokenBldgLimit : " + i);
-            run(i, bldgs);
+        /**各種設定**/
+        //outputするルートとなるフォルダ
+        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
+
+        /**出力関連**/
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
+        String date = sdf.format(c.getTime());
+        sdf = new SimpleDateFormat("HH_mm_ss");
+
+
+        // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
+        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
+        File datedir = new File(folder);
+        if (!datedir.exists()) {
+            datedir.mkdir();
         }
+
+
+        /**シミュレーション**/
+        BuildingList bldgs = new BuildingList(102);
+        for(int i = 13 ; i < 16;i++) {
+            System.out.println("brokenBldgLimit : " + i);
+            run(i, bldgs, datedir);
+        }
+
+        /**全体のサマリーの出力**/
+        Output.limitRegulationPoint(datedir);
     }
-    public static void run(final int brokenBldglimit, final BuildingList bldgs) {
+    public static void run(final int brokenBldglimit, final BuildingList bldgs, final File datedir) {
 
         /****各種設定****/
 
         // ループの回数
         final int loopNum = 4 * 20;
-
-        //outputするルートとなるフォルダ
-        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
@@ -104,20 +124,16 @@ public class Main2 {
         final int outKaisensu = 14200 * 2; // 区内中継リンク
         final int exKaisensu = 27100 * 2;// 区外中継リンク
 
+
+        //outputするルートとなるフォルダ
+        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
+
         // ファイル出力
         Calendar c = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
-        String date = sdf.format(c.getTime());
-        sdf = new SimpleDateFormat("HH_mm_ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
         String time = sdf.format(c.getTime());
 
-        // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
-        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
-        File datedir = new File(folder);
-        if (!datedir.exists()) {
-            datedir.mkdir();
-        }
-        File timedir = new File(folder + "/" + time + "/");
+        File timedir = new File(datedir + "/" + time + "/");
         if (!timedir.exists()) {
             timedir.mkdir();
         }

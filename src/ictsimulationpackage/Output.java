@@ -1,20 +1,31 @@
 package ictsimulationpackage;
 
 import java.io.*;
+import java.lang.reflect.Array;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 
 public class Output {
+    //一日分のデータの保存
     static ArrayList<double[]> allCallLossRate = new ArrayList<>();
     static ArrayList<double[]> allCallLoss = new ArrayList<>();
-    static ArrayList<Double> timePointList[] ;
+    //loop毎のデータの保存
+    static ArrayList<Double> timePointList[];
     static ArrayList<Double> ammPointList[];
     static ArrayList<Double> bothPointList[];
     static ArrayList<Integer> brokenBldgNum = new ArrayList<>();
     static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
+
+    //limit毎のデータ保存
+    static ArrayList<ArrayList<Double>[]> limitTimePointList = new ArrayList<>();
+    static ArrayList<ArrayList<Double>[]> limitAmmPointList = new ArrayList<>();
+    static ArrayList<ArrayList<Double>[]> limitBothPointList = new ArrayList<>();
+
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -210,7 +221,7 @@ public class Output {
         bothPointList = new ArrayList[criNum];
         //リストの初期化
         for (int i = 0; i < criNum; i++) {
-            timePointList [i] = new ArrayList<>();
+            timePointList[i] = new ArrayList<>();
             ammPointList[i] = new ArrayList<>();
             bothPointList[i] = new ArrayList<>();
         }
@@ -219,7 +230,7 @@ public class Output {
 
     public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
                                                int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
-                                               int timeRegulation, int ammountRegulation,int criNum) {
+                                               int timeRegulation, int ammountRegulation, int criNum) {
 
         //通信規制の方針を比較する
         String path = timedir + "/regulationMethodDevidedOutput_" + (loop / 4) + ".xls";
@@ -327,12 +338,12 @@ public class Output {
 
         if (loop % 4 == 3) {
             //最後のループの時
-            for(int criterion = 0; criterion < criNum; criterion++){
+            for (int criterion = 0; criterion < criNum; criterion++) {
                 //変数初期化
                 String criText = "";
-                double[] rateNonReg ;
+                double[] rateNonReg;
                 double[] rateTimeReg;
-                double[] rateAmmReg ;
+                double[] rateAmmReg;
                 double[] rateBothReg;
                 double difTimeSum;
                 double difAmmSum;
@@ -371,7 +382,7 @@ public class Output {
 
                         //差分の導出
                         timeDif = maxInArray(rateNonReg) - maxInArray(rateTimeReg);
-                        ammDif =  maxInArray(rateNonReg) - maxInArray(rateAmmReg  );
+                        ammDif = maxInArray(rateNonReg) - maxInArray(rateAmmReg);
                         bothDif = maxInArray(rateNonReg) - maxInArray(rateBothReg);
 
                         difTimeSum += timeDif;
@@ -423,7 +434,7 @@ public class Output {
 
                         //差分の導出
                         timeDif = aveInArray(rateNonReg) - aveInArray(rateTimeReg);
-                        ammDif =  aveInArray(rateNonReg) - aveInArray(rateAmmReg );
+                        ammDif = aveInArray(rateNonReg) - aveInArray(rateAmmReg);
                         bothDif = aveInArray(rateNonReg) - aveInArray(rateBothReg);
 
                         difTimeSum += timeDif;
@@ -501,9 +512,9 @@ public class Output {
                         criText = "_sumCL";
                         sheet = wb.createSheet("summary" + criText);
 
-                        rateNonReg =  allCallLoss.get(0);
+                        rateNonReg = allCallLoss.get(0);
                         rateTimeReg = allCallLoss.get(1);
-                        rateAmmReg =  allCallLoss.get(2);
+                        rateAmmReg = allCallLoss.get(2);
                         rateBothReg = allCallLoss.get(3);
                         row = sheet.createRow(0);
 
@@ -552,9 +563,9 @@ public class Output {
                         criText = "_minMaxCLR";
                         sheet = wb.createSheet("summary" + criText);
 
-                        rateNonReg =  allCallLossRate.get(0);
+                        rateNonReg = allCallLossRate.get(0);
                         rateTimeReg = allCallLossRate.get(1);
-                        rateAmmReg =  allCallLossRate.get(2);
+                        rateAmmReg = allCallLossRate.get(2);
                         rateBothReg = allCallLossRate.get(3);
                         row = sheet.createRow(0);
 
@@ -571,14 +582,14 @@ public class Output {
 
                         //出力
                         row = sheet.createRow(1);
-                        row.createCell(0).setCellValue(minMaxInArray(rateNonReg ));
+                        row.createCell(0).setCellValue(minMaxInArray(rateNonReg));
                         row.createCell(1).setCellValue(minMaxInArray(rateTimeReg));
-                        row.createCell(2).setCellValue(minMaxInArray(rateAmmReg ));
+                        row.createCell(2).setCellValue(minMaxInArray(rateAmmReg));
                         row.createCell(3).setCellValue(minMaxInArray(rateBothReg));
 
                         //差分の導出
-                        timeDif = minMaxInArray(rateNonReg)-  minMaxInArray(rateTimeReg);
-                        ammDif =  minMaxInArray(rateNonReg) - minMaxInArray(rateAmmReg );
+                        timeDif = minMaxInArray(rateNonReg) - minMaxInArray(rateTimeReg);
+                        ammDif = minMaxInArray(rateNonReg) - minMaxInArray(rateAmmReg);
                         bothDif = minMaxInArray(rateNonReg) - minMaxInArray(rateBothReg);
 
                         difTimeSum += timeDif;
@@ -604,12 +615,12 @@ public class Output {
             }
 
             //ビル破壊情報の収集
-            if(brokenBldgId.size() <= loop) {
+            if (brokenBldgId.size() <= loop) {
                 Building[] list = BuildingList.bldgList;
                 int idx = 0;
 
                 //上の表記の二行あとから
-                row = sheet.createRow(allCallLossRate.get(0).length+ 2);
+                row = sheet.createRow(allCallLossRate.get(0).length + 2);
                 row.createCell(idx++).setCellValue("破壊ビル");
                 int brokenNum = 0;
                 ArrayList<Integer> tmpIdList = new ArrayList<>();
@@ -748,7 +759,7 @@ public class Output {
         Output.output(file, wb);
     }
 
-    static void regulationPointOutput(File folder,int criNum) {
+    static void regulationPointOutput(File folder, int criNum) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
@@ -761,8 +772,8 @@ public class Output {
         Building[] bList = BuildingList.bldgList;
         int[] brokenBldgCnt = new int[103];
 
-        for(int criterion = 0; criterion < criNum ; criterion++){
-            String cri ="";
+        for (int criterion = 0; criterion < criNum; criterion++) {
+            String cri = "";
             switch (criterion) {
                 case 0:
                     cri = "_maxCLR";
@@ -821,16 +832,86 @@ public class Output {
         }
         Output.output(file, wb);
 
+        //limit毎の記録
+        ArrayList<Double> cpTimeList[] = new ArrayList[timePointList.length];
+        ArrayList<Double> cpAmmList[] =  new ArrayList[timePointList.length];
+        ArrayList<Double> cpBothList[] = new ArrayList[timePointList.length];
+
+        for(int i =0 ;i < timePointList.length;i++) {
+            cpTimeList[i] = new ArrayList(timePointList[i]);
+            cpAmmList[i] =  new ArrayList(ammPointList[i]);
+            cpBothList[i] = new ArrayList(bothPointList[i]);
+        }
+
+
+
+        limitTimePointList.add(cpTimeList);
+        limitAmmPointList.add(cpAmmList);
+        limitBothPointList.add(cpBothList);
+
         //初期化
         allCallLossRate.clear();
         allCallLoss.clear();
-        for(int i = 0 ;i < timePointList.length;i++) {
+        for (int i = 0; i < timePointList.length; i++) {
             timePointList[i].clear();
             ammPointList[i].clear();
             bothPointList[i].clear();
             brokenBldgNum.clear();
             brokenBldgId.clear();
         }
+    }
+
+    public static void limitRegulationPoint(File folder) {
+        //ファイルの作成
+        Calendar cl = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
+        String time = sdf.format(cl.getTime());
+        String fileName = folder + "/pointOutputSummary_"+time+".xls";
+        File file = new File(fileName);
+        Workbook wb = new HSSFWorkbook();
+        wb = Output.getWorkbook(file, wb);
+
+        //シートの作成->criterion別
+        Sheet sheets[] = new Sheet[5];
+        sheets[0] = wb.createSheet("maxCLR");
+        sheets[1] = wb.createSheet("aveCLR");
+        sheets[2] = wb.createSheet("sumCLR");
+        sheets[3] = wb.createSheet("sumCL");
+        sheets[4] = wb.createSheet("minMaxCLR");
+
+        //シートのカラム名の追加
+        for(int i = 0; i < sheets.length;i++) {
+            Row r = sheets[i].createRow(0);
+            r.createCell(0).setCellValue("timePoint");
+            r.createCell(1).setCellValue("ammPoint");
+            r.createCell(2).setCellValue("bothPoint");
+            r.createCell(3).setCellValue("brokenBuildingNum");
+        }
+
+
+        //limitとciriterionのサイズ取得
+        int criterionNum = limitBothPointList.get(0).length;
+        int limit = limitBothPointList.size();
+
+        for (int l = 0; l < limit; l++) {
+            //limit別のデータ取得
+            int startRow = 1 + 20 * l;
+            for (int c = 0; c < criterionNum; c++) {
+                Sheet s = sheets[c];
+                ArrayList<Double> timeList = limitTimePointList.get(l)[c];
+                ArrayList<Double> ammList =  limitAmmPointList.get(l)[c];
+                ArrayList<Double> bothList = limitBothPointList.get(l)[c];
+
+                for(int i = 0;i < timeList.size();i++) {
+                    Row r = s.createRow(startRow + i);
+                    r.createCell(0).setCellValue(timeList.get(i));
+                    r.createCell(1).setCellValue(ammList.get(i));
+                    r.createCell(2).setCellValue(bothList.get(i));
+                    r.createCell(3).setCellValue(l + 1);
+                }
+            }
+        }
+        output(file,wb);
     }
 
     static double[] arrayIntoHour(double[] array) {
