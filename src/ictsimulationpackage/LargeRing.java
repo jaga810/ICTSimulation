@@ -4,8 +4,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class LargeRing {
+    private BuildingList bldgList;
+    private Building nerima;
+    private Link outLink;
+    private SmallRing smallRing;
+
+    LargeRing(BuildingList bldgList) {
+        this.bldgList = bldgList;
+        nerima = bldgList.findBldg("練馬");
+        outLink = nerima.getOutLink();
+        smallRing = new SmallRing();
+    }
+
     // startとdestにビルを入れるとそのルート上のリンクのリストを返す
-    static ArrayList<Link> route(Building start, Building dest) {
+    ArrayList<Link> route(Building start, Building dest) {
         ArrayList<Link> link;
 
         boolean isOutBldg = isOutBldg(start, dest);
@@ -14,8 +26,7 @@ public class LargeRing {
             return link;
         }
 
-        boolean isSameArea = isSameArea(start, dest);
-        if (isSameArea) {
+        if (start.isSameArea(dest)) {
             link = inRoute(start, dest);
         } else {
             link = exRoute(start, dest);
@@ -23,25 +34,29 @@ public class LargeRing {
         return link;
     }
 
-    // 区外を含んだルートを決定する
-    static ArrayList<Link> outRoute(Building start, Building dest) {
+    /**
+     * you can determine the route considering the link capacity and broken buildings
+     * @param start start building
+     * @param dest  destination building
+     * @return list of used links, if cant find the route, return null
+     */
+    ArrayList<Link> outRoute(Building start, Building dest) {
         // 変数初期化
         ArrayList<Link> link = new ArrayList();
-        Building nerima = BuildingList.findBldg("練馬");
         // 変数代入
-        if (BuildingList.outLink.maxCap()) {
+        if (bldgList.getOutLink().maxCap()) {
             return null;
         }
 
         // 区外 -> 区内
-        if (start.bid == 102) {
+        if (start.isKugai()) {
             // 区外から練馬
-            if (nerima.outLink.broken || start.broken || nerima.broken) {
+            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
                 // 健全
-                link.add(nerima.outLink);
+                link.add(outLink);
             }
             // ゴールが練馬ならここでおわり
             if (dest == nerima) {
@@ -65,37 +80,37 @@ public class LargeRing {
                 }
             }
             // 練馬から区外
-            if (nerima.outLink.broken || start.broken || nerima.broken) {
+            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
-                link.add(nerima.outLink);
+                link.add(outLink);
             }
         }
         return link;
     }
 
-    // 違う区に向けてルートを決定する
-    static ArrayList<Link> exRoute(Building start, Building dest) {
+    //区内の別リングを含む探索
+    ArrayList<Link> exRoute(Building start, Building dest) {
         // 変数初期化
         ArrayList<Link> link = new ArrayList();
         Building sAreaBldg ;
         Building dAreaBldg ;
         // 変数代入
-        sAreaBldg = start.areaBldg;
-        dAreaBldg = dest.areaBldg;
+        sAreaBldg = start.getAreaBldg();
+        dAreaBldg = dest.getAreaBldg();
 
         // ルートにnullがあると例外発生
         try {
             // スタートからスタートエリア
-            if (start != start.areaBldg) {
+            if (!start.isAreaBldg()) {
                 // startが中継ビルの場合のエスケープ
                 link.addAll(inRoute(start, sAreaBldg));
             }
             // スタートエリアからゴールエリア
             link.addAll(inRoute(sAreaBldg, dAreaBldg));
             // ゴールエリアからゴール
-            if (dest != dest.areaBldg) {
+            if (!dest.isAreaBldg()) {
                 link.addAll(inRoute(dAreaBldg, dest));
             }
         } catch (Exception e) {
@@ -105,29 +120,19 @@ public class LargeRing {
     }
 
     // 同じくないのビル間、exRoopのビル間、各リングの一周で済む区間の探索
-    static ArrayList<Link> inRoute(Building start, Building dest) {
+    ArrayList<Link> inRoute(Building start, Building dest) {
         ArrayList<Link> link;
-        link = SmallRing.route(start, dest);
+        link = smallRing.route(start, dest);
         return link;
     }
 
-    // 同じ区内に出発地と目的地が存在するか
-    static boolean isSameArea(Building start, Building dest) {
-        boolean isSameArea = false;
-        if (start.areaBldg == dest.areaBldg) {
-            isSameArea = true;
-        }
-        return isSameArea;
-    }
-
-    // 区外かいなか
-    static boolean isOutBldg(Building start, Building dest) {
-        boolean isOutBldg = false;
-        // System.out.println("the bid = dest:" + dest.bid + " start:" +
-        // start.bid);
-        if (start.bid == 102 || dest.bid == 102) {
-            isOutBldg = true;
-        }
-        return isOutBldg;
+    /**
+     * if start or destination buildings is kugai, return true
+     * @param start
+     * @param dest
+     * @return
+     */
+    boolean isOutBldg(Building start, Building dest) {
+        return start.isKugai()|| dest.isKugai();
     }
 }

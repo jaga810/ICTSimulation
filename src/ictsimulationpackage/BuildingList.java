@@ -3,43 +3,64 @@ package ictsimulationpackage;
 import java.util.*;
 
 public class BuildingList {
-	static Building[] bldgList = new Building[103];
-	static Building[] preBldgList = new Building[103];
-	static Building[] exBldgList = new Building[3];
-	static Building[] startBldgList = new Building[102];
-	static ArrayList<Link> linkList = new ArrayList<Link>();
-	static ArrayList<Link> exLinkList = new ArrayList<Link>();
-	static ArrayList<Link> allLinkList = new ArrayList<Link>();
-	static HashMap<String, Building> bldgIndex = new HashMap<String, Building>();
-	static HashMap<Integer, Link> linkIndex = new HashMap<Integer, Link>();
-	static Link outLink;
-	static Building first[] = new Building[3];
-	static Building last[] = new Building[3];
-	static int bldgNumNow = 0;// 現在格納しているビルデータ数
-	int exBldgIndex[] = {0, 36, 71};
+	//定数
+	private final int groupNum = 3;
+
+	//データ読み込み
+	String[] bldgName = Settings.BldgName();
+	double[] scale;
+
+	//various building lists
+	private Building[] bldgList = new Building[103];
+	private Building[] preBldgList = new Building[103];
+	private Building[] exBldgList = new Building[3];
+	private Building[] startBldgList = new Building[102];
+
+	//various link lists
+	private ArrayList<Link> linkList = new ArrayList<Link>();
+	private ArrayList<Link> exLinkList = new ArrayList<Link>();
+	private ArrayList<Link> allLinkList = new ArrayList<Link>();
+
+	//for search building from name
+	private HashMap<String, Building> bldgIndex = new HashMap<String, Building>();
+
+	//for search building from linkIndex
+	private HashMap<Integer, Link> linkIndex = new HashMap<Integer, Link>();
+	private Link outLink;
+	private Building first[] = new Building[3];
+	private Building last[] = new Building[3];
+	private int bldgNumNow = 0;// 現在格納しているビルデータ数
+	private int exBldgIndex[] = {0, 36, 71};
 
 	// bldgNum=使用するビルの数
 	BuildingList(int bldgNum) {
-		System.out.println("set up building data");
 		// 双方向リスト作成用変数の初期化
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < groupNum; i++) {
 			first[i] = new Building();
 			last[i] = new Building();
+			first[i].setBldgR(last[i]);
+			last[i].setBldgL(first[i]);
 		}
-		// ビルの初期化（環状双方向リスト）
+		// ビルの初期化（双方向リスト）
 		int roop = bldgNum;
 		for (int i = bldgNumNow; i < roop; i++) {
 			if (i < 36) {
 				// 練馬区内リンク add(index , 区識別ナンバー)
-				add(i, 0);
+				addBldg(i, 0);
 			} else if ( 36 <= i && i < 71) {
 				// 荏原区内リンク
-				add(i, 1);
+				addBldg(i, 1);
 			} else {
 				// 墨田区内リンク
-				add(i, 2);
+				addBldg(i, 2);
 			}
 		}
+		//first,lastを削除して環状リストに
+		for(int i = 0; i < groupNum;i ++) {
+			first[i].getBldgR().setBldgL(last[i].getBldgL());
+			last[i].getBldgL().setBldgR(first[i].getBldgR());
+		}
+
 		// areaBldgセット
 		for (int i = 0; i < roop; i++) {
 			if (i < 36) {
@@ -53,35 +74,39 @@ public class BuildingList {
 				setArea(i, 2);
 			}
 		}
-		// 区内リンク： 連結 + リンク生成
-		for (int i = 0; i < 3; i++) {
-			first[i].bldgR.bldgL = last[i].bldgL;
-			last[i].bldgL.bldgR = first[i].bldgR;
-			Building bldg;
-			bldg = first[i].bldgR;
+
+		// 区内リンク：リンク生成
+		for (int i = 0; i < groupNum; i++) {
+			Building bldg = first[i].getBldgR();
 			do {
-				Link ln = new Link(bldg.bldgR, bldg, bldg.bid);
-				bldg.linkR = ln;
-				bldg.bldgR.linkL = ln;
-				bldg = bldg.bldgR;
+				Link ln = new Link(bldg);
+				bldg.setLinks(ln);
 				linkList.add(ln);
-			} while (bldg != first[i].bldgR);
+
+				bldg = bldg.getBldgR();
+			} while (bldg != first[i].getBldgR());
 		}
+
 		// 区内中経リンク作成
 		exBuilding();
+
 		// 区外中継リンク作成
 		outBuilding(bldgList[0]);
+
 		// リンク全体のリスト作成
 		allLinkList.addAll(linkList);
 		allLinkList.addAll(exLinkList);
 		allLinkList.add(outLink);
+
 		// ビルのインデックス（名前検索）の作成
 		makeIndex();
 		makeLinkIndex();
+
 		//呼数のセット
 		preBldgList = bldgList;
-		KosuDownloader.download();
-		//idを元に戻す
+
+		//kosuの読み込み
+		KosuDownloader.download(findBldg("区外"), this);
 	}
 
 	// areaBldgを
@@ -105,23 +130,15 @@ public class BuildingList {
 	}
 
 	// idを引数としてビルを後ろへと追加 group=区内接続リンク
-	void add(int index, int group) {
+	void addBldg(int index, int group) {
 		// group 0:練馬区 1:荏原区 2:墨田区
-		Building bldg = new Building(index);
-		// System.out.println(index + ":" + bldg.bname);
+		Building bldg = new Building(index, this, bldgName);
+		//インデックスに追加
 		bldgList[index] = bldg;
 		startBldgList[index] = bldg;
 		bldgNumNow++;
-		if (first[group].bldgR == null) {
-			first[group].bldgR = last[group].bldgL = bldg;
-			bldg.bldgL = first[group];
-			bldg.bldgR = last[group];
-		} else {
-			bldg.bldgL = last[group].bldgL;
-			last[group].bldgL.bldgR = bldg;
-			last[group].bldgL = bldg;
-			bldg.bldgR = last[group];
-		}
+		//ビルの挿入
+		last[group].getBldgL().insertBldgR(bldg);
 	}
 
 	// 区内中継リンクの作成 練馬=0, 荏原=40, 墨田=71
@@ -143,12 +160,11 @@ public class BuildingList {
 		// 左右のリンク作成
 		Building bldg = bldg0;
 		do {
-			// System.out.println("called");
-			Link ln = new Link(bldg.exBldgR, bldg, bldg.bid + 200);
-			bldg.exLinkR = ln;
-			bldg.exBldgR.exLinkL = ln;
-			bldg = bldg.exBldgR;
+			Link ln = new Link( bldg, bldg.getBid() + 200);
+			bldg.setExLinks(ln);
 			exLinkList.add(ln);
+
+			bldg = bldg.getExBldgR();
 		} while (bldg != bldg0);
 		// リストへ追加
 		exBldgList[0] = bldg0;
@@ -159,30 +175,25 @@ public class BuildingList {
 	// 区外中継ビルの設定
 	void outBuilding(Building bldg) {
 		// 区外中継ビルフラグ
-		bldg.outBuilding = true;
+		bldg.setOutBuilding(true);
 		// 区外ビル（抽象）
-		Building outBldg = new Building();
-		outBldg.bldgL = bldg;
-		outBldg.bname = "区外";
-		outBldg.bid = bldgNumNow;
-		outBldg.areaBldg = outBldg;
-//		System.out.println("outBldg:" + outBldg.bname + "," + outBldg.bid);
+		Building outBldg = new Building("区外", bldgNumNow++);
+		outBldg.setBldgL(bldg);
 		bldgList[102] = outBldg;
-		bldgNumNow++;
 		// 区外中継リンク
 		Link ln = new Link(bldg, outBldg);
-		bldg.outLink = ln;
+		bldg.setOutLink(ln);
 		outLink = ln;
 	}
 
 	void makeIndex() {
 		for (Building bldg : bldgList) {
-			bldgIndex.put(bldg.bname, bldg);
+			bldgIndex.put(bldg.getBname(), bldg);
 		}
 	}
 
 	// ビルの名前検索。見つからなければnullを返す
-	static Building findBldg(String bname) {
+	Building findBldg(String bname) {
 		Building bldg;
 		try {
 			bldg = bldgIndex.get(bname);
@@ -197,11 +208,11 @@ public class BuildingList {
 	void makeLinkIndex() {
 		Link link;
 		for (Link ln : allLinkList) {
-			linkIndex.put(ln.id, ln);
+			linkIndex.put(ln.getId(), ln);
 		}
 	}
 
-	static Link findLink(int i) {
+	Link findLink(int i) {
 		Link ln;
 		try {
 			ln = linkIndex.get(i);
@@ -214,10 +225,84 @@ public class BuildingList {
 	
 	void resetBroken(){
 		for(Link ln : allLinkList){
-			ln.broken = false;
+			ln.repair();
 		}
 		for(Building bldg : bldgList){
-			bldg.broken = false;
+			bldg.repair();
+		}
+	}
+
+	public void getScale() {
+		scale = Settings.getScale(this);
+	}
+
+	public void brokenByQuake(int limit) {
+		Pair ps[] = new Pair[102];
+		int idx = 0;
+		for (Building bldg :startBldgList) {
+			ps[idx++] = new Pair((Math.pow(scale[bldg.getBid()], 4) / 30000) / Math.random(), bldg);
+		}
+		Arrays.sort(ps);
+		if (limit == 0) {
+			//破壊数無制限の場合
+			for (int i = 0; i < ps.length; i++) {
+				if (ps[i].prob > 1) {
+					ps[i].bldg.broken();
+				}
+			}
+		} else {
+			int cnt = 0;
+			for (int i = 0; i < ps.length && cnt < limit; i++) {
+				ps[i].bldg.broken();
+				cnt++;
+			}
+		}
+	}
+
+	public Building[] getStartBldgList() {
+		return startBldgList;
+	}
+
+	public ArrayList<Link> getLinkList() {
+		return linkList;
+	}
+
+	public ArrayList<Link> getExLinkList() {
+		return exLinkList;
+	}
+
+	public Link getOutLink() {
+		return outLink;
+	}
+
+	public ArrayList<Link> getAllLinkList(){
+		return allLinkList;
+	}
+
+	public Building[] getBldgList() {
+		return bldgList;
+	}
+	class Pair implements Comparable {
+		double prob;
+		Building bldg;
+
+		Pair(double a, Building b) {
+			prob = a;
+			bldg = b;
+		}
+
+		public int compareTo(Object other) {
+			Pair p1 = (Pair) other;
+//            return this.prob - ((Pair) other).first; // IDの値に従い昇順で並び替えたい場合
+//         return -(this.prob - ((Pair) other).prob); // IDの値に従い降順で並び替えたい場合
+			double val = (this.prob - ((Pair) other).prob);
+			if (val == 0) {
+				return 0;
+			} else if (val > 0) {
+				return 1;
+			} else {
+				return -1;
+			}
 		}
 	}
 }

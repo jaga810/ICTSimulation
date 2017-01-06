@@ -12,14 +12,14 @@ import org.apache.poi.ss.usermodel.*;
 
 public class Output {
     //一日分のデータの保存
-    static ArrayList<double[]> allCallLossRate = new ArrayList<>();
-    static ArrayList<double[]> allCallLoss = new ArrayList<>();
+      ArrayList<double[]> allCallLossRate = new ArrayList<>();
+      ArrayList<double[]> allCallLoss = new ArrayList<>();
     //loop毎のデータの保存
-    static ArrayList<Double> timePointList[];
-    static ArrayList<Double> ammPointList[];
-    static ArrayList<Double> bothPointList[];
-    static ArrayList<Integer> brokenBldgNum = new ArrayList<>();
-    static ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
+      ArrayList<Double> timePointList[];
+      ArrayList<Double> ammPointList[];
+      ArrayList<Double> bothPointList[];
+      ArrayList<Integer> brokenBldgNum = new ArrayList<>();
+      ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
 
     //limit毎のデータ保存
     static ArrayList<ArrayList<Double>[]> limitTimePointList = new ArrayList<>();
@@ -58,10 +58,10 @@ public class Output {
         }
     }
 
-    static void areaDevidedKosu(File folder, int loop) {
+      void areaDevidedKosu(File folder, int loop , CallList group) {
         String path = folder + "/areaDevidedKosu.xls";
         String sheetName = "areaKosu_" + loop;
-        long array[] = Call.areaKosu;
+        long array[] = group.getAreaKosu();
 
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
@@ -76,7 +76,7 @@ public class Output {
         }
         // areaLossKosu
         sheetName = "areaLossKosu_" + loop;
-        array = Call.areaLossKosu;
+        array = group.getAreaLossKosu();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
@@ -84,7 +84,7 @@ public class Output {
 
         // exKosu
         sheetName = "exKosu_" + loop;
-        array = Call.exKosu;
+        array = group.getExKosu();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
@@ -92,7 +92,7 @@ public class Output {
 
         // exLossKosu
         sheetName = "exLossKosu_" + loop;
-        array = Call.exLossKosu;
+        array = group.getExLossKosu();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
@@ -116,7 +116,7 @@ public class Output {
         return wb;
     }
 
-    public static void magDevidedOutput(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
+    public   void magDevidedOutput(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
         String path = timedir + "/magDevidedOutput.xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
@@ -215,7 +215,7 @@ public class Output {
         Output.output(file, wb);
     }
 
-    public static void regulaitonMethodDevidedInitialize(int criNum) {
+    public  void regulaitonMethodDevidedInitialize(int criNum) {
         timePointList = new ArrayList[criNum];
         ammPointList = new ArrayList[criNum];
         bothPointList = new ArrayList[criNum];
@@ -228,9 +228,9 @@ public class Output {
 
     }
 
-    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
+    public void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
                                                int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
-                                               int timeRegulation, int ammountRegulation, int criNum) {
+                                               int timeRegulation, int ammountRegulation, int criNum, Building[] bldgList) {
 
         //通信規制の方針を比較する
         String path = timedir + "/regulationMethodDevidedOutput_" + (loop / 4) + ".xls";
@@ -616,7 +616,7 @@ public class Output {
 
             //ビル破壊情報の収集
             if (brokenBldgId.size() <= loop) {
-                Building[] list = BuildingList.bldgList;
+                Building[] list = bldgList;
                 int idx = 0;
 
                 //上の表記の二行あとから
@@ -625,10 +625,10 @@ public class Output {
                 int brokenNum = 0;
                 ArrayList<Integer> tmpIdList = new ArrayList<>();
                 for (int i = 0; i < list.length; i++) {
-                    if (list[i].broken) {
-                        row.createCell(idx++).setCellValue(list[i].bname);
+                    if (list[i].isBroken()) {
+                        row.createCell(idx++).setCellValue(list[i].getBname());
                         brokenNum++;
-                        tmpIdList.add(list[i].bid);
+                        tmpIdList.add(list[i].getBid());
                     }
                 }
 
@@ -644,7 +644,7 @@ public class Output {
     }
 
 
-    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
+    public void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
 //        Building[] list = BuildingList.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
@@ -681,14 +681,14 @@ public class Output {
         }
     }
 
-    public static void StandardOutput(int timeLength, File timedir, double[] arr, int loop) {
+    public void StandardOutput(int timeLength, File timedir, double[] arr, int loop, BuildingList bldgs) {
         double capHis[][] = new double[102][timeLength];
-        ArrayList<Link> links = BuildingList.allLinkList;
+        ArrayList<Link> links = bldgs.getAllLinkList();
 
         for (int i = 0; i < 102; i++) {
             Link link = links.get(i);
             for (int t = 0; t < timeLength; t++) {
-                capHis[i][t] = link.capHis[t];
+                capHis[i][t] = link.getCapHis()[t];
             }
         }
 
@@ -719,7 +719,7 @@ public class Output {
 
 
     //リンクを準に破壊していった場合の結果をアウトプットするもの
-    public static void BreakLinkInOrderOutput(int loopNum, double[] array, File folder, int criterion) {
+    public void BreakLinkInOrderOutput(int loopNum, double[] array, File folder, int criterion) {
         //ファイルの作成
         String cri = "";
         String sheetName = "";
@@ -759,7 +759,7 @@ public class Output {
         Output.output(file, wb);
     }
 
-    static void regulationPointOutput(File folder, int criNum) {
+      void regulationPointOutput(File folder, int criNum, BuildingList bldgs) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
@@ -769,7 +769,7 @@ public class Output {
         //sheetの作成
         Sheet s = wb.createSheet("init");
         Row r;
-        Building[] bList = BuildingList.bldgList;
+        Building[] bList = bldgs.getBldgList();
         int[] brokenBldgCnt = new int[103];
 
         for (int criterion = 0; criterion < criNum; criterion++) {
@@ -812,8 +812,8 @@ public class Output {
                 ArrayList<Integer> list = brokenBldgId.get(i);
                 for (int k = 0; k < list.size(); k++) {
                     Building bldg = bList[list.get(k)];
-                    r.createCell(5 + k).setCellValue(bldg.bname);
-                    brokenBldgCnt[bldg.bid]++;
+                    r.createCell(5 + k).setCellValue(bldg.getBname());
+                    brokenBldgCnt[bldg.getBid()]++;
                 }
             }
         }
@@ -827,7 +827,7 @@ public class Output {
 
         for (int i = 0; i < brokenBldgCnt.length; i++) {
             r = s.createRow(st + i + 1);
-            r.createCell(0).setCellValue(bList[i].bname);
+            r.createCell(0).setCellValue(bList[i].getBname());
             r.createCell(1).setCellValue(brokenBldgCnt[i]);
         }
         Output.output(file, wb);
@@ -861,7 +861,7 @@ public class Output {
         }
     }
 
-    public static void limitRegulationPoint(File folder) {
+    public static synchronized void  limitRegulationPoint(File folder) {
         //ファイルの作成
         Calendar cl = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
