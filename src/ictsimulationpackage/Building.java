@@ -182,21 +182,14 @@ public class Building {
         int val;
         int hour = time / 60 % 24;
         double kosu = this.kosu[hour].get(dest);
+        double kosuTaken = kosuTakenFinder(hour, dest);
         if (bname.equals("区外")) {
-            double kosuTaken = kosuTakenFinder(hour, dest);
             //多摩地区発信のトラフィック
-            if (kosu * mag < 2815.00707107201 * 2) {
-                val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
-            } else {
-                val = OccurrenceOfCalls.Occurrence(2815.00707107201 * 2 / 60);
-            }
+            val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
 
             //県外発信のトラフィック
-            if (kosu * mag < 5908.49092777896 * 2) {
-                val += OccurrenceOfCalls.Occurrence(kosu * mag / 60);
-            } else {
-                val += OccurrenceOfCalls.Occurrence(5908.49092777896 * 2 / 60);
-            }
+            val += OccurrenceOfCalls.Occurrence(kosuTaken * mag / 60);
+
         } else {
             val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
         }

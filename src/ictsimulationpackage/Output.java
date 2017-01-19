@@ -117,7 +117,10 @@ public class Output {
     }
 
     public static void magDevidedOutput(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
-        String path = timedir + "/magDevidedOutput.xls";
+        Calendar cl = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
+        String time = sdf.format(cl.getTime());
+        String path = timedir + "/magDevidedOutput_" + time + ".xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);

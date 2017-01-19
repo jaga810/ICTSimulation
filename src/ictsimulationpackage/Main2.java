@@ -58,7 +58,7 @@ public class Main2 {
         /****各種設定****/
 
         // ループの回数
-        final int loopNum = 4 * 20;
+        final int loopNum = 20;
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
@@ -82,13 +82,13 @@ public class Main2 {
         final double ammount = 0;
 
         //需要を元の呼の発生量の何倍に設定するか
-        int mag = 5;
+        int mag = 1;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int output[] = {3,6};
+        int output[] = {2};
 
         //規制の書け方 0:規制なし/手動規制 1: 4角規制方針の比較
-        int regMethod = 1;
+        int regMethod = 0;
 
         /*** 初期化関連 ***/
 
@@ -120,13 +120,12 @@ public class Main2 {
         final int timeLength = hour * 60;
 
         // 1リンク設計回線数
-        final int kaisensu = 10000 * 2;
-        final int outKaisensu = 14200 * 2; // 区内中継リンク
-        final int exKaisensu = 27100 * 2;// 区外中継リンク
-
+        final int kaisensu = 11200 * 2;
+        final int outKaisensu = 16300 * 2; // 区内中継リンク
+        final int exKaisensu = 33200 * 2;// 区外中継リンク
 
         //outputするルートとなるフォルダ
-        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
+        final String outgputRootFolder = "/Users/jaga/Documents/domain_project/output/";
 
         // ファイル出力
         Calendar c = Calendar.getInstance();
