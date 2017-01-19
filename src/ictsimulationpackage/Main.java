@@ -1,24 +1,10 @@
 package ictsimulationpackage;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-
-import java.io.*;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class Main2 implements Runnable {
+public class Main implements Runnable {
 
     private int brokenBldglimit;
     private File datedir;
@@ -34,10 +20,11 @@ public class Main2 implements Runnable {
         final int bldgNum = 102;
 
         //simulationで壊すビルの最大値
+        final int minBrokenBldgLimit = 1;
         final int maxBrokenBldgLimit = 14;
 
         //同時に走らせるスレッドの最大数
-        final int maxThreadsNum = 2;
+        final int maxThreadsNum = 3;
 
         /**出力関連**/
         Calendar c = Calendar.getInstance();
@@ -55,11 +42,12 @@ public class Main2 implements Runnable {
 
 
         /**シミュレーション**/
+        double sTime = System.nanoTime();
         ArrayDeque<Thread> threads = new ArrayDeque<>();
-        Thread[] runnning = new Thread[maxBrokenBldgLimit];
+        Thread[] runnning = new Thread[maxBrokenBldgLimit - minBrokenBldgLimit + 1];
         ThreadGroup group = new ThreadGroup("simulation");
-        for(int i = 1 ; i <= maxBrokenBldgLimit ;i++) {
-            Runnable run = new Main2(i, datedir, bldgNum);
+        for(int i = minBrokenBldgLimit ; i <= maxBrokenBldgLimit ;i++) {
+            Runnable run = new Main(i, datedir, bldgNum);
             Thread thread = new Thread(group, run, "limit:" + i);
             threads.offer(thread);
         }
@@ -88,12 +76,13 @@ public class Main2 implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        System.out.println((System.nanoTime()-sTime)/1.0e9 + "s");
 
         /**全体のサマリーの出力**/
-        Output.limitRegulationPoint(datedir);
+        Output.limitRegulationPoint(datedir, minBrokenBldgLimit,maxBrokenBldgLimit);
     }
 
-    Main2(final int brokenBldglimit, final File datedir, final int bldgNum){
+    Main(final int brokenBldglimit, final File datedir, final int bldgNum){
         this.bldgNum = bldgNum;
         this.brokenBldglimit = brokenBldglimit;
         this.datedir = datedir;
@@ -104,7 +93,7 @@ public class Main2 implements Runnable {
         /****各種設定****/
 
         // ループの回数
-        final int loopNum = 4 * 1;
+        final int loopNum = 4 * 20;
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
@@ -205,19 +194,18 @@ public class Main2 implements Runnable {
             int ammountRegulation = 0;
             switch (regMethod) {
                 case 0:
-                    HoldingTime.method = 0;
+                    timeRegulation = 0;
                     ammountRegulation = 0;
                     break;
                 case 1:
                     timeRegulation = regulationMethod[loop % 4][0];
-                    HoldingTime.method = timeRegulation;
                     ammountRegulation = regulationMethod[loop % 4][1];
                     break;
             }
 
             /***initialization***/
             // Callの持続時間の方針: 0:制限なし 1:１分まで
-            callList.reset();
+            callList.reset(timeRegulation);
 
             // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
             if (scenario == 0 || loop % 4 == 0) {
@@ -454,10 +442,10 @@ public class Main2 implements Runnable {
 
             //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
             if (contain(outputMethod, 6) && loop == loopNum - 1 && criterion == 5) {
-                output.regulationPointOutput(timedir, criNum,bldgs);
+                output.regulationPointOutput(timedir, criNum,bldgs,brokenBldglimit);
 
             } else if (contain(outputMethod, 6) && loop == loopNum - 1) {
-                output.regulationPointOutput(timedir, 0, bldgs);
+                output.regulationPointOutput(timedir, 0, bldgs,brokenBldglimit);
             }
 
             //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
@@ -473,7 +461,7 @@ public class Main2 implements Runnable {
 
 //            System.out.println("-----------------OUTPUT finished-------------------");
             double loopDur = (System.nanoTime() - loopStartTime) * 1.0e-9;
-            System.out.println("limit-" + brokenBldglimit+ ":loop-" + loop + " time :" + loopDur);
+            System.out.println("limit-" + brokenBldglimit+ ":loop-" + (loop + 1) + " time :" + loopDur);
         }
 
 

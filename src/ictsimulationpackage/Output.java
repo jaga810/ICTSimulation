@@ -5,6 +5,8 @@ import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -21,11 +23,10 @@ public class Output {
       ArrayList<Integer> brokenBldgNum = new ArrayList<>();
       ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
 
-    //limit毎のデータ保存
-    static ArrayList<ArrayList<Double>[]> limitTimePointList = new ArrayList<>();
-    static ArrayList<ArrayList<Double>[]> limitAmmPointList = new ArrayList<>();
-    static ArrayList<ArrayList<Double>[]> limitBothPointList = new ArrayList<>();
-
+    //limit毎のデータ保存。keyはbrokenBldgLimit
+    static HashMap<Integer,ArrayList<Double>[]> limitTimePointList = new HashMap();
+    static HashMap<Integer,ArrayList<Double>[]> limitAmmPointList  = new HashMap();
+    static HashMap<Integer,ArrayList<Double>[]> limitBothPointList = new HashMap();
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -644,7 +645,7 @@ public class Output {
     }
 
 
-    public void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
+    public void  summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
 //        Building[] list = BuildingList.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
@@ -759,7 +760,7 @@ public class Output {
         Output.output(file, wb);
     }
 
-      void regulationPointOutput(File folder, int criNum, BuildingList bldgs) {
+     public synchronized void regulationPointOutput(File folder, int criNum, BuildingList bldgs, int brokenBldgLimit) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
@@ -845,9 +846,9 @@ public class Output {
 
 
 
-        limitTimePointList.add(cpTimeList);
-        limitAmmPointList.add(cpAmmList);
-        limitBothPointList.add(cpBothList);
+        limitTimePointList.put(brokenBldgLimit,cpTimeList);
+        limitAmmPointList.put(brokenBldgLimit,cpAmmList);
+        limitBothPointList.put(brokenBldgLimit,cpBothList);
 
         //初期化
         allCallLossRate.clear();
@@ -861,7 +862,7 @@ public class Output {
         }
     }
 
-    public static synchronized void  limitRegulationPoint(File folder) {
+    public static synchronized void  limitRegulationPoint(File folder, int minBrokenBldgNum,int maxBrokenBldgNum) {
         //ファイルの作成
         Calendar cl = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
@@ -890,16 +891,16 @@ public class Output {
 
 
         //limitとciriterionのサイズ取得
-        int criterionNum = limitBothPointList.get(0).length;
-        int limit = limitBothPointList.size();
+        int criterionNum = limitBothPointList.get(minBrokenBldgNum).length;
+        int numPerBrokenBldg = limitAmmPointList.get(minBrokenBldgNum)[0].size();
 
-        for (int l = 0; l < limit; l++) {
+        for (int l = minBrokenBldgNum; l <= maxBrokenBldgNum; l++) {
             //limit別のデータ取得
-            int startRow = 1 + 20 * l;
+            int startRow = 1 + numPerBrokenBldg * l;
             for (int c = 0; c < criterionNum; c++) {
                 Sheet s = sheets[c];
                 ArrayList<Double> timeList = limitTimePointList.get(l)[c];
-                ArrayList<Double> ammList =  limitAmmPointList.get(l)[c];
+                ArrayList<Double> ammList  =  limitAmmPointList.get(l)[c];
                 ArrayList<Double> bothList = limitBothPointList.get(l)[c];
 
                 for(int i = 0;i < timeList.size();i++) {
@@ -907,7 +908,7 @@ public class Output {
                     r.createCell(0).setCellValue(timeList.get(i));
                     r.createCell(1).setCellValue(ammList.get(i));
                     r.createCell(2).setCellValue(bothList.get(i));
-                    r.createCell(3).setCellValue(l + 1);
+                    r.createCell(3).setCellValue(l);
                 }
             }
         }

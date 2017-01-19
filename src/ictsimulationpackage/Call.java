@@ -32,7 +32,7 @@ public class Call {
         this.group = group;
 
         // 終了時刻
-        int holdTime = HoldingTime.OneHoldingTime();
+        int holdTime = group.holdingTime();
         this.EndTime = time + holdTime;
         group.addSumHoldTime(time,holdTime);
 

@@ -23,11 +23,15 @@ public class CallList {
     private BuildingList bldgList;
     private LargeRing largeRing;
 
+    //このloopでのtimeregulationとHoldingTimeオブジェクト
+    private int timeRegulation;
+    private HoldingTime holdingTime;
+
     /**
      * reset method for 1 day loop
      * if the 24h simulation ends, this method is called
      */
-    void reset() {
+    void reset(int regulation) {
         //各配列の初期化
         limitList = new ArrayList[timeLength];
         for (int i = 0; i < timeLength; i++) {
@@ -40,6 +44,12 @@ public class CallList {
         areaLossKosu = new long[102];
         exKosu = new long[102];
         sumHoldTime = new int[timeLength];
+        timeRegulation = regulation;
+        holdingTime = new HoldingTime();
+    }
+
+    public int holdingTime() {
+        return holdingTime.OneHoldingTime(timeRegulation);
     }
 
     /**

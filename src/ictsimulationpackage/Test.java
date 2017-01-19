@@ -10,18 +10,6 @@ import java.util.zip.DataFormatException;
  */
 public class Test {
     static public void main(String args[]) {
-        int loop = 1000000;
-        long hist[] = new long[10];
-        for(int i = 0; i < loop;i++) {
-            int time = HoldingTime.OneHoldingTime();
-            if (time < hist.length - 1) {
-                hist[time]++;
-            }else{
-                hist[hist.length - 1]++;
-            }
-        }
-        for(int i = 0; i < hist.length;i++) {
-            System.out.println(hist[i]);
-        }
+
     }
 }
