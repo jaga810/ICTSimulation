@@ -45,13 +45,14 @@ public class Main2 {
 
         /**シミュレーション**/
         BuildingList bldgs = new BuildingList(102);
-        for(int i = 13 ; i < 16;i++) {
-            System.out.println("brokenBldgLimit : " + i);
-            run(i, bldgs, datedir);
-        }
+//        for(int i = 13 ; i < 16;i++) {
+//            System.out.println("brokenBldgLimit : " + i);
+//            run(i, bldgs, datedir);
+//        }
+        run(0, bldgs, datedir);
 
         /**全体のサマリーの出力**/
-        Output.limitRegulationPoint(datedir);
+//        Output.limitRegulationPoint(datedir);
     }
     public static void run(final int brokenBldglimit, final BuildingList bldgs, final File datedir) {
 
@@ -61,13 +62,13 @@ public class Main2 {
         final int loopNum = 20;
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
-        final int scenario = 1;
+        final int scenario = 0;
 
         //直下型シナリオにおいて、ビルの破壊数を制限するか->0:制限しない
 //        final int brokenBldglimit = 2;
 
         //評価基準 0:呼損率の最大値 1:呼損率の平均 2:時間積分した呼損率 3:全損失呼の数 4:呼損率のMax-Min 5:全て
-        final int criterion = 5;
+        final int criterion = 0;
 
         //評価基準全体の呼数
         final int criNum = 5;
@@ -82,7 +83,7 @@ public class Main2 {
         final double ammount = 0;
 
         //需要を元の呼の発生量の何倍に設定するか
-        int mag = 1;
+//        int mag = 1;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
         int output[] = {2};
@@ -171,6 +172,9 @@ public class Main2 {
             }
 
             /***initialization***/
+            //mag比較の場合
+            double mag = loop * 0.5 + 1;
+
             // Callの持続時間の方針: 0:制限なし 1:１分まで
             Call.reset();
 
@@ -417,7 +421,7 @@ public class Main2 {
             //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
             if (contain(output, 2)) {
                 Output.magDevidedOutput(hour, timeLength, timedir, loop, mag, callExist, callOccur, callLoss,
-                        callLossRate, callDeleted, avgHoldTime);
+                        callLossRate, callDeleted, avgHoldTime,loopNum);
             }
 
             //発生area別に呼数を出力する

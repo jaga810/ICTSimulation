@@ -178,12 +178,13 @@ public class Building {
     }
 
     //時間、目的地、普段と比べたトラフィックの倍率を引数として発生呼数を返す
-    int occurence(int time, Building dest, int mag) {
+    int occurence(int time, Building dest, double mag) {
         int val;
         int hour = time / 60 % 24;
         double kosu = this.kosu[hour].get(dest);
-        double kosuTaken = kosuTakenFinder(hour, dest);
+
         if (bname.equals("区外")) {
+            double kosuTaken = kosuTakenFinder(hour, dest);
             //多摩地区発信のトラフィック
             val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
 

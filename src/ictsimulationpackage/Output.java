@@ -5,6 +5,7 @@ import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -26,6 +27,9 @@ public class Output {
     static ArrayList<ArrayList<Double>[]> limitAmmPointList = new ArrayList<>();
     static ArrayList<ArrayList<Double>[]> limitBothPointList = new ArrayList<>();
 
+
+    //mag毎のデータ保存
+    static HashMap<Double,Double> CLRbyMag = new HashMap<>();//key=mag,val=maxCLR by hour
 
     static void doubleArrayToExcel(double[] array, String path, String sheetName) {
         File file = new File(path);
@@ -116,11 +120,11 @@ public class Output {
         return wb;
     }
 
-    public static void magDevidedOutput(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
+    public static void magDevidedOutput(int hour, int timeLength, File timedir, int loop, double mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime,int loopNum) {
         Calendar cl = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
         String time = sdf.format(cl.getTime());
-        String path = timedir + "/magDevidedOutput_" + time + ".xls";
+        String path = timedir + "/magDevidedOutput.xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
         wb = Output.getWorkbook(file, wb);
@@ -196,6 +200,8 @@ public class Output {
         double callDeletedH[] = arrayIntoHour(callDeleted);
         double avgHoldTimeH[] = arrayIntoHourRate(avgHoldTime);
 
+        CLRbyMag.put(mag,maxInArray(callLossRateH));
+
         for (int h = 0; h < hour; h++) {
             row = sheet.createRow(h + 1);
             row.createCell(0).setCellValue(h + 1);
@@ -215,6 +221,19 @@ public class Output {
         sheet.createRow(26).createCell(0).setCellValue("最大呼損率/h");
         sheet.createRow(27).createCell(0).setCellValue(worst_loss_rate);
 
+        if (loop == loopNum - 1) {
+            sheet = wb.createSheet("summary");
+            row = sheet.createRow(0);
+            row.createCell(0).setCellValue("mag");
+            row.createCell(1).setCellValue("CLR");
+            int idx = 1;
+            for (double key : CLRbyMag.keySet()) {
+                row = sheet.createRow(idx++);
+                row.createCell(0).setCellValue(key);
+                row.createCell(1).setCellValue(CLRbyMag.get(key));
+            }
+        }
+
         Output.output(file, wb);
     }
 
@@ -231,7 +250,7 @@ public class Output {
 
     }
 
-    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
+    public static void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, double mag, int[] callExist, int[] callOccur,
                                                int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
                                                int timeRegulation, int ammountRegulation, int criNum) {
 
@@ -647,7 +666,7 @@ public class Output {
     }
 
 
-    public static void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
+    public static void summaryOutput(File timedir, double mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
 //        Building[] list = BuildingList.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
@@ -871,8 +890,7 @@ public class Output {
         String time = sdf.format(cl.getTime());
         String fileName = folder + "/pointOutputSummary_"+time+".xls";
         File file = new File(fileName);
-        Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        Workbook wb = Output.getWorkbook(file, new HSSFWorkbook());
 
         //シートの作成->criterion別
         Sheet sheets[] = new Sheet[5];
