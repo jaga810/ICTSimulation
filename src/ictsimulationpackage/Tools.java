@@ -8,9 +8,9 @@ public class Tools {
 		int index = 0;
 		do{
 			sum[index] = areaKosu(bldg);
-			bldg = bldg.bldgR;
+			bldg = bldg.getBldgR();
 			index ++ ;
-		}while(!bldg.bname.equals("墨田"));
+		}while(!bldg.getBname().equals("墨田"));
 		String path = "/Users/jaga/Documents/domain_project/kosuS";
 		String sheetName = "ebara";
 		
@@ -22,13 +22,13 @@ public class Tools {
 		Building bldg;
 		double sum = 0;
 		for(int t = 0; t <24; t++){
-			bldg = dest.bldgR;
-			sum += bldg.kosu[t].get(dest);
+			bldg = dest.getBldgR();
+			sum += bldg.getKosu(t).get(dest);
 			while(bldg != dest){
-				sum += bldg.kosu[t].get(dest);
-				sum += dest.kosu[t].get(bldg);
+				sum += bldg.getKosu(t).get(dest);
+				sum += dest.getKosu(t).get(bldg);
 				
-				bldg = bldg.bldgR;
+				bldg = bldg.getBldgR();
 			}
 		}
 		return sum;

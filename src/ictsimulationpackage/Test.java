@@ -10,7 +10,6 @@ import java.util.zip.DataFormatException;
  */
 public class Test {
     static public void main(String args[]) {
-        double[] ar = {1, 2, 3, 4};
-        System.out.println(Output.aveInArray(ar));
+
     }
 }

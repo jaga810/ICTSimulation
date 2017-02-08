@@ -1,22 +1,32 @@
 package ictsimulationpackage;
 
 public class Link {
-	int capacity;// 時刻tの接続回線数
-	int iniCap;// 初期設計回線数
-	int capHis[];
-	int id;
+	private int capacity;// 時刻tの接続回線数
+	private int iniCap;// 初期設計回線数
+	private int capHis[];
+	private int id;
 	// 区内リンク：leftのビルのbidと一致
-	// 区内中継リンク: 練馬荏原:200 荏原墨田:240 墨田練馬:271
+	// 区内中継リンク: 練馬荏原:200 荏原墨田:236 墨田練馬:271
 	// 区外中継リンク:1000
-	Building right;
-	Building left;
-	boolean broken = false;
+	private Building right;
+	private Building left;
+	private boolean broken = false;
 
-	Link(Building r, Building l, int n) {
-		// 区内リンク、区内中継リンク
-		right = r;
-		left = l;
-		id = n;
+	//アーランB用
+	private double trrafic[] = new double[24];
+
+	Link(Building bldg) {
+		// 区内リンク
+		right = bldg.getBldgR();
+		left = bldg;
+		id = bldg.getBid();
+	}
+
+	Link(Building bldg, int id) {
+		//区内中継リンク
+		left = bldg;
+		right = bldg.getExBldgR();
+		this.id = id;
 	}
 
 	Link(Building bldg1, Building bldg2) {
@@ -82,8 +92,32 @@ public class Link {
 		return val;
 	}
 
+	public int getId() {
+		return id;
+	}
+
+	public void repair() {
+		broken = false;
+	}
+
+	public boolean isBroken() {
+		return broken;
+	}
+
+	public int getCapacity() {
+		return capacity;
+	}
+
+	public int[] getCapHis() {
+		return capHis;
+	}
+
 	void saveCap(int t) {
 		capHis[t] = capacity;
+	}
+
+	public int getIniCap() {
+		return iniCap;
 	}
 
 	double capHis() {
@@ -93,5 +127,21 @@ public class Link {
 		res = ratio * 100;
 		
 		return res;
+	}
+
+
+	//引数の時間帯のトラフィックを返す
+	public double getTrrafic(int h) {
+		return trrafic[h];
+	}
+
+
+	public double addTrrafic(int time,double val) {
+		trrafic[time] += val;
+		return trrafic[time];
+	}
+
+	public double getMaxTrrafic() {
+		return Output.maxInArray(trrafic);
 	}
 }

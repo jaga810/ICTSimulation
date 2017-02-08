@@ -3,71 +3,52 @@ package ictsimulationpackage;
 import java.util.ArrayList;
 
 public class Call {
-    // ある１つの呼のデータ
-    static ArrayList<Call> limitList[];// 有る時間に終了する呼のリスト
-    static int sumHoldTime[];
-    //区内で発生した呼の生成数と呼損数（累計：時間全体で）
-    static long areaKosu[] = new long[102];
-    static long exLossKosu[] = new long[102];
-    //区外で発生した呼の生成数と呼損数（累計）
-    static long exKosu[] = new long[102];
-    static long areaLossKosu[] = new long[102];
-    static int timeLength;
-
+    //変数
     Building start;
     Building dest;
     int EndTime;
-    ArrayList<Link> LinkList;
+    ArrayList<Link> linkList;
     boolean success = false;
+    CallList group;
+    static int timeLength;
 
-    static void reset() {
-        limitList = new ArrayList[timeLength];
-        for (int i = 0; i < timeLength; i++) {
-            // 初期化
-            limitList[i] = new ArrayList<>();
-            sumHoldTime[i] = 0;
-        }
-        areaKosu = new long[102];
-        exLossKosu = new long[102];
-        areaLossKosu = new long[102];
-        exKosu = new long[102];
-        sumHoldTime = new int[timeLength];
+    static void setTimeLength(int time){
+        timeLength = time;
     }
 
-    Call(int tLength) {
-        sumHoldTime = new int[tLength];
-        limitList = new ArrayList[tLength];
-        for (int i = 0; i < tLength; i++) {
-            // 初期化
-            limitList[i] = new ArrayList<>();
-        }
-        timeLength = tLength;
-        System.out.println("Call Class initialized with timelength = " + timeLength);
-    }
-
-    Call(Building start, Building dest, int time) {
+    /**
+     * assess the possibility of call and store the result to the group
+     * @param start the start building
+     * @param dest the destination building of this call
+     * @param time when this call occurs
+     * @param group which call list this call belongs to
+     */
+    Call(Building start, Building dest, int time, CallList group) {
         //発着ビルの設定
         this.start = start;
         this.dest = dest;
 
+        //呼のグループへの所属
+        this.group = group;
+
         // 終了時刻
-        int holdTime = HoldingTime.OneHoldingTime();
+        int holdTime = group.holdingTime();
         this.EndTime = time + holdTime;
-        sumHoldTime[time] += holdTime;
+        group.addSumHoldTime(time,holdTime);
 
-
+        //経路探索
         if (start == dest) {
             // 出発ビルと到着ビルが同じ場合
-            if (!start.broken) {
+            if (!start.isBroken()) {
                 //ビルが壊れていなければ
                 success = true;
             }
         } else {
             // 使用するリンク
-            LinkList = LargeRing.route(start, dest);
-            if (LinkList != null) {
+            linkList = group.route(start, dest);
+            if (linkList != null) {
                 // 接続に成功した場合 null = 失敗
-                for (Link ln : LinkList) {
+                for (Link ln : linkList) {
                     ln.addCap();
                 }
                 success = true;
@@ -76,20 +57,20 @@ public class Call {
 
         //呼が生成に成功した場合
         if (success && EndTime < timeLength) {
-            limitList[EndTime].add(this);
+            group.addToLimitList(EndTime, this);
             // 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
-            if (start.areaBldg != null && dest.areaBldg != null && start != dest &&
+            if (start.getAreaBldg() != null && dest.getAreaBldg() != null && start != dest &&
                     time < 14 * 60 && time > 12 * 60) {
-                if ((start.areaBldg == dest.areaBldg)) {
-                    for (Link ln : LinkList) {
-                        if (ln.id < 102) {
-                            areaKosu[ln.id]++;
+                if ((start.getAreaBldg() == dest.getAreaBldg())) {
+                    for (Link ln : linkList) {
+                        if (ln.getId() < 102) {
+                            group.addAreaKosu(ln.getId());
                         }
                     }
                 } else {
-                    for (Link ln : LinkList) {
-                        if (ln.id < 102) {
-                            exKosu[ln.id]++;
+                    for (Link ln : linkList) {
+                        if (ln.getId() < 102) {
+                            group.addExKosu(ln.getId());
                         }
                     }
                 }
@@ -98,10 +79,10 @@ public class Call {
     }
 
     void delete() {
-        if (LinkList == null) {
+        if (linkList == null) {
             return;
         }
-        for (Link ln : LinkList) {
+        for (Link ln : linkList) {
             if (!ln.subCap()) {
                 System.out.println("capacity goes to 0");
                 System.out.println(1 / 0);

@@ -4,43 +4,51 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class Building {
-    //データ読み込み
-    static String[] bldgName = Settings.BldgName();
-    static double[] scale;
-
     //変数
-    boolean exBuilding = false;//区内中継３ビル
-    boolean outBuilding = false;//練馬
-    int bid;
-    String bname;
-    Building areaBldg;
-    boolean broken = false;
+    private boolean exBuilding = false;//区内中継３ビル
+    private boolean outBuilding = false;//練馬
+    private int bid;
+    private String bname;
+    private Building areaBldg;
+    private boolean broken = false;
 
-    HashMap<Building, Double> kosu[] = new HashMap[24];
-    HashMap<Building, Double> kosuTaken[] = new HashMap[24];
+    private HashMap<Building, Double> kosu[] = new HashMap[24];
+    private HashMap<Building, Double> kosuTaken[] = new HashMap[24];
+
+    //bldgListオブジェクト（親オブジェクト
+    private BuildingList bldgList;
 
     //左右方向のリンク
-    Link linkR;
-    Link linkL;
+    private Link linkR;
+    private Link linkL;
 
     //左右方向のビル;
-    Building bldgR;
-    Building bldgL;
-    Building exBldgR;
-    Building exBldgL;
+    private Building bldgR;
+    private Building bldgL;
+    private Building exBldgR;
+    private Building exBldgL;
 
     //区内中継リンク
-    Link exLinkR;
-    Link exLinkL;
+    private Link exLinkR;
+    private Link exLinkL;
 
     //区外中継リンク
-    Link outLink;
+    private Link outLink;
 
-    double latitude;//緯度
-    double longitude;//経度
+    //経度、緯度
+    private double latitude;
+    private double longitude;
 
     Building() {
-        //start用
+        //start,last用
+    }
+
+    Building(String bname, int bid) {
+        //区外ビル作成用
+        this.bname = bname;
+        this.bid = bid;
+        this.areaBldg = this;
+
         for (int i = 0; i < kosu.length; i++) {
             kosu[i] = new HashMap();
         }
@@ -49,44 +57,22 @@ public class Building {
         }
     }
 
-    Building(int id) {
+    Building(int id, BuildingList bldgList, String bldgName[]) {
         bid = id;
         bname = bldgName[bid];
+        this.bldgList = bldgList;
 
         for (int i = 0; i < kosu.length; i++) {
-            kosu[i] = new HashMap<Building, Double>();
+            kosu[i] = new HashMap();
         }
         for (int i = 0; i < kosuTaken.length; i++) {
-            kosuTaken[i] = new HashMap<Building, Double>();
+            kosuTaken[i] = new HashMap();
         }
     }
 
-    static void getScale() {
-        scale = Settings.getScale();
-    }
 
-    static void brokenByQuake(int limit) {
-        Pair ps[] = new Pair[102];
-        int idx = 0;
-        for (Building bldg : BuildingList.startBldgList) {
-            ps[idx++] = new Pair((Math.pow(scale[bldg.bid], 4) / 30000) / Math.random(), bldg);
-        }
-        Arrays.sort(ps);
-        if (limit == 0) {
-            //破壊数無制限の場合
-            for (int i = 0; i < ps.length; i++) {
-                if (ps[i].prob > 1) {
-                    ps[i].bldg.broken();
-                }
-            }
-        } else {
-            int cnt = 0;
-            for (int i = 0; i < ps.length && cnt < limit; i++) {
-                ps[i].bldg.broken();
-                cnt++;
-            }
-        }
-    }
+
+
 
     void setArea(Building bldg) {
         areaBldg = bldg;
@@ -131,13 +117,19 @@ public class Building {
     }
 
     void setKosu(int t, Building bldg, double kosu) {
-        if (this.kosu[t].containsKey(bldg)) {
-            double val = this.kosu[t].get(bldg);
-            val += kosu;
-            this.kosu[t].put(bldg, val);
-        } else {
-            this.kosu[t].put(bldg, kosu);
+        try {
+            if (this.kosu[t].containsKey(bldg)) {
+                double val = this.kosu[t].get(bldg);
+                val += kosu;
+                this.kosu[t].put(bldg, val);
+            } else {
+                this.kosu[t].put(bldg, kosu);
+            }
+        } catch (NullPointerException e) {
+            System.out.println("start:" + bname + " t:" + t );
+            e.printStackTrace();
         }
+
     }
 
     //他県への個数は別に管理。多摩地区はkosu[t][102]
@@ -182,14 +174,21 @@ public class Building {
         int val;
         int hour = time / 60 % 24;
         double kosu = this.kosu[hour].get(dest);
-        double kosuTaken = kosuTakenFinder(hour, dest);
-        if (bname.equals("区外")) {
+        if (isKugai()) {
+            double kosuTaken = kosuTakenFinder(hour, dest);
             //多摩地区発信のトラフィック
-            val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
+            if (kosu * mag < 2815.00707107201 * 2) {
+                val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
+            } else {
+                val = OccurrenceOfCalls.Occurrence(2815.00707107201 * 2 / 60);
+            }
 
             //県外発信のトラフィック
-            val += OccurrenceOfCalls.Occurrence(kosuTaken * mag / 60);
-
+            if (kosuTaken * mag < 5908.49092777896 * 2) {
+                val += OccurrenceOfCalls.Occurrence(kosu * mag / 60);
+            } else {
+                val += OccurrenceOfCalls.Occurrence(5908.49092777896 * 2 / 60);
+            }
         } else {
             val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
         }
@@ -201,28 +200,144 @@ public class Building {
         longitude = lon;
     }
 
+    public Building getBldgR() {
+        return bldgR;
+    }
 
-    static class Pair implements Comparable {
-        double prob;
-        Building bldg;
+    public Building getBldgL() {
+        return bldgL;
+    }
 
-        Pair(double a, Building b) {
-            prob = a;
-            bldg = b;
-        }
+    public void setBldgR(Building bldg) {
+        bldgR = bldg;
+    }
 
-        public int compareTo(Object other) {
-            Pair p1 = (Pair) other;
-//            return this.prob - ((Pair) other).first; // IDの値に従い昇順で並び替えたい場合
-//         return -(this.prob - ((Pair) other).prob); // IDの値に従い降順で並び替えたい場合
-            double val = (this.prob - ((Pair) other).prob);
-            if (val == 0) {
-                return 0;
-            } else if (val > 0) {
-                return 1;
-            } else {
-                return -1;
-            }
-        }
+    public void setBldgL(Building bldg) {
+        bldgL = bldg;
+    }
+
+    public void insertBldgR(Building bldg) {
+        //this -> (bldg) -> bldgR
+        //bldgの右をbldgRに, 左をthisに
+        bldg.setBldgR(bldgR);
+        bldg.setBldgL(this);
+        //bldgRの左をbldgに
+        bldgR.setBldgL(bldg);
+        //bldgの右をbldgに
+        setBldgR(bldg);
+    }
+
+    public int getBid() {
+        return bid;
+    }
+
+    public void setLinks(Link ln) {
+        setLinkR(ln);
+        bldgR.setLinkL(ln);
+    }
+
+    public void setLinkR(Link ln) {
+        linkR = ln;
+    }
+
+    public void setLinkL(Link ln) {
+        linkL = ln;
+    }
+
+    public Link getLinkR() {
+        return linkR;
+    }
+
+    public Link getLinkL() {
+        return linkL;
+    }
+
+    public Building getExBldgR() {
+        return exBldgR;
+    }
+
+    public Building getExBldgL() {
+        return exBldgL;
+    }
+
+    private void setExLinkR(Link ln ) {
+        exLinkR = ln;
+    }
+
+    private void setExLinkL(Link ln) {
+        exLinkL = ln;
+    }
+
+    public void setExLinks(Link ln) {
+        setExLinkR(ln);
+        exBldgR.setExLinkL(ln);
+    }
+
+    public void setOutBuilding(boolean bl){
+        outBuilding = bl;
+    }
+
+    public String getBname() {
+        return bname;
+    }
+
+    public void setOutLink(Link ln) {
+        outLink = ln;
+    }
+
+    public void repair() {
+        broken = false;
+    }
+
+    public boolean isBroken() {
+        return broken;
+    }
+
+    public Building getAreaBldg() {
+        return areaBldg;
+    }
+
+    public boolean isKugai() {
+        return bname.equals("区外");
+    }
+
+    public Link getOutLink() {
+        return outLink;
+    }
+
+    public boolean isSameArea(Building bldg) {
+        return this.areaBldg == bldg.areaBldg;
+    }
+
+    public boolean isAreaBldg() {
+        return areaBldg == this;
+    }
+
+    public boolean canGoRight() {
+        return linkR.isBroken()|| isBroken() || linkR.maxCap();
+    }
+
+    public boolean canGoLeft() {
+        return linkL.isBroken()|| isBroken() || linkL.maxCap();
+    }
+
+    public boolean canGoExRight() {
+        return exLinkR.isBroken()|| isBroken() || exLinkR.maxCap();
+    }
+
+    public boolean canGoExLeft() {
+        return exLinkL.isBroken()|| isBroken() || exLinkL.maxCap();
+    }
+
+    public Link getExLinkR() {
+        return exLinkR;
+    }
+
+    public Link getExLinkL() {
+        return exLinkL;
+    }
+
+    public HashMap<Building,Double> getKosu(int t) {
+        return kosu[t];
     }
 }

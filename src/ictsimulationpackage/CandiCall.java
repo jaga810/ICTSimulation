@@ -12,8 +12,8 @@ public class CandiCall {
 	}
 	
 	//呼の生成
-	Call generateCall(){
-		Call call = new Call(start, dest, time);
+	Call generateCall(CallList callList){
+		Call call = new Call(start, dest, time, callList);
 		return call;
 	}
 }
