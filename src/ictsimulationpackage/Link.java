@@ -6,11 +6,14 @@ public class Link {
 	private int capHis[];
 	private int id;
 	// 区内リンク：leftのビルのbidと一致
-	// 区内中継リンク: 練馬荏原:200 荏原墨田:240 墨田練馬:271
+	// 区内中継リンク: 練馬荏原:200 荏原墨田:236 墨田練馬:271
 	// 区外中継リンク:1000
 	private Building right;
 	private Building left;
 	private boolean broken = false;
+
+	//アーランB用
+	private double trrafic[] = new double[24];
 
 	Link(Building bldg) {
 		// 区内リンク
@@ -113,6 +116,10 @@ public class Link {
 		capHis[t] = capacity;
 	}
 
+	public int getIniCap() {
+		return iniCap;
+	}
+
 	double capHis() {
 		
 		double res  = -1;
@@ -120,5 +127,21 @@ public class Link {
 		res = ratio * 100;
 		
 		return res;
+	}
+
+
+	//引数の時間帯のトラフィックを返す
+	public double getTrrafic(int h) {
+		return trrafic[h];
+	}
+
+
+	public double addTrrafic(int time,double val) {
+		trrafic[time] += val;
+		return trrafic[time];
+	}
+
+	public double getMaxTrrafic() {
+		return Output.maxInArray(trrafic);
 	}
 }

@@ -52,6 +52,33 @@ public class SmallRing {
 		return linkList;
 	}
 
+	ArrayList<Link> route(Building start, Building dest,boolean isRight) {
+		ArrayList<Link> linkList;
+
+		//探索を右回りで行うかどうかはランダムにキマる
+//		boolean isRight = false;
+//		if(Math.random() > 0.5){
+//			isRight = true;
+//		}
+
+		if (start.isAreaBldg() && dest.isAreaBldg()) {
+			//中継ビル同士の探索
+			if (isRight) {
+				linkList = areaRightSearch(start, dest);
+			} else {
+				linkList = areaLeftSearch(start, dest);
+			}
+		}else{
+			//同じ地区内ビル同士の探索
+			if (isRight) {
+				linkList = rightSearch(start, dest);
+			} else {
+				linkList = leftSearch(start, dest);
+			}
+		}
+		return linkList;
+	}
+
 	// 右回り探索（同じエリア内）
 	ArrayList<Link> rightSearch(Building start, Building dest) {
 		// test:右回り優先探索でやる

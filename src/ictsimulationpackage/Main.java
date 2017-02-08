@@ -13,9 +13,6 @@ public class Main implements Runnable {
     /**連続でシミュレーションを回すときに使う**/
     public static void main(String args[]) {
         /**各種設定**/
-        //outputするルートとなるフォルダ
-        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
-
         //使用する中継ビルの個数（県外除く）
         final int bldgNum = 102;
 
@@ -27,19 +24,7 @@ public class Main implements Runnable {
         final int maxThreadsNum = 3;
 
         /**出力関連**/
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
-        String date = sdf.format(c.getTime());
-        sdf = new SimpleDateFormat("HH_mm_ss");
-
-
-        // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
-        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
-        File datedir = new File(folder);
-        if (!datedir.exists()) {
-            datedir.mkdir();
-        }
-
+        File datedir = Output.getDateDir();
 
         /**シミュレーション**/
         double sTime = System.nanoTime();
@@ -168,6 +153,7 @@ public class Main implements Runnable {
         if (!timedir.exists()) {
             timedir.mkdir();
         }
+
         // ビルディングリストオブジェクトの作成
         BuildingList bldgs = new BuildingList(bldgNum);
 

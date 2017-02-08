@@ -15,6 +15,7 @@ public class BuildingList {
 	private Building[] preBldgList = new Building[103];
 	private Building[] exBldgList = new Building[3];
 	private Building[] startBldgList = new Building[102];
+	private Building outBldg;
 
 	//various link lists
 	private ArrayList<Link> linkList = new ArrayList<Link>();
@@ -180,6 +181,8 @@ public class BuildingList {
 		Building outBldg = new Building("区外", bldgNumNow++);
 		outBldg.setBldgL(bldg);
 		bldgList[102] = outBldg;
+		this.outBldg = outBldg;
+
 		// 区外中継リンク
 		Link ln = new Link(bldg, outBldg);
 		bldg.setOutLink(ln);
@@ -277,6 +280,10 @@ public class BuildingList {
 
 	public ArrayList<Link> getAllLinkList(){
 		return allLinkList;
+	}
+
+	public Building getOutBldg() {
+		return outBldg;
 	}
 
 	public Building[] getBldgList() {

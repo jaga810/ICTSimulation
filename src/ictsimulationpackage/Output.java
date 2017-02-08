@@ -2,6 +2,7 @@ package ictsimulationpackage;
 
 import java.io.*;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -965,6 +966,20 @@ public class Output {
         return val;
     }
 
+    public static BigDecimal maxInArray(BigDecimal[] array) {
+        if (array.length == 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal val = BigDecimal.ZERO;
+
+        for (int i = 0; i < array.length; i++) {
+            if (val.compareTo(array[i]) < 0) {
+                val = array[i];
+            }
+        }
+        return val;
+    }
+
     public static double minInArray(double[] array) {
         if (array.length == 0) {
             return 0;
@@ -1015,5 +1030,40 @@ public class Output {
         }
 
         return maxInArray(array) - minInArray(array);
+    }
+
+    public static File getDateDir() {
+        //outputするルートとなるフォルダ
+        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
+
+        /**出力関連**/
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
+        String date = sdf.format(c.getTime());
+        sdf = new SimpleDateFormat("HH_mm_ss");
+
+
+        // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
+        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
+        File datedir = new File(folder);
+
+        if (!datedir.exists()) {
+            datedir.mkdir();
+        }
+
+        return datedir;
+    }
+
+    public static File getTimeDir() {
+        // ファイル出力
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
+        String time = sdf.format(c.getTime());
+
+        File timedir = new File(getDateDir() + "/" + time + "/");
+        if (!timedir.exists()) {
+            timedir.mkdir();
+        }
+        return timedir;
     }
 }
