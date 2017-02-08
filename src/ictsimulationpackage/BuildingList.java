@@ -149,10 +149,6 @@ public class BuildingList {
 		Building bldg40 = bldgList[exBldgIndex[1]];
 		Building bldg71 = bldgList[exBldgIndex[2]];
 
-		bldg0.external();
-		bldg40.external();
-		bldg71.external();
-
 		// 左右のビルの入力
 		bldg0.setExBldg(bldg40, bldg71);
 		bldg40.setExBldg(bldg71, bldg0);
@@ -175,8 +171,6 @@ public class BuildingList {
 
 	// 区外中継ビルの設定
 	void outBuilding(Building bldg) {
-		// 区外中継ビルフラグ
-		bldg.setOutBuilding(true);
 		// 区外ビル（抽象）
 		Building outBldg = new Building("区外", bldgNumNow++);
 		outBldg.setBldgL(bldg);

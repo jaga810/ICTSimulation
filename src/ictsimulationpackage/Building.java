@@ -5,8 +5,6 @@ import java.util.HashMap;
 
 public class Building {
     //変数
-    private boolean exBuilding = false;//区内中継３ビル
-    private boolean outBuilding = false;//練馬
     private int bid;
     private String bname;
     private Building areaBldg;
@@ -104,11 +102,6 @@ public class Building {
             bldg = null;
         }
         return bldg;
-    }
-
-    //中継ビルであるかいなか
-    void external() {
-        exBuilding = true;
     }
 
     //ビルの破壊
@@ -271,10 +264,6 @@ public class Building {
     public void setExLinks(Link ln) {
         setExLinkR(ln);
         exBldgR.setExLinkL(ln);
-    }
-
-    public void setOutBuilding(boolean bl){
-        outBuilding = bl;
     }
 
     public String getBname() {

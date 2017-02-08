@@ -1,80 +1,51 @@
 package ictsimulationpackage;
 
 import java.io.File;
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Main implements Runnable {
 
     private int brokenBldglimit;
-    private File datedir;
+    private File dateDir;
     private int bldgNum;
 
-    /**連続でシミュレーションを回すときに使う**/
     public static void main(String args[]) {
-        /**各種設定**/
-        //使用する中継ビルの個数（県外除く）
-        final int bldgNum = 102;
-
-        //simulationで壊すビルの最大値
+        /**各種設定変数**/
+        final int bldgNum = 102; //使用する中継ビルの個数（県外除く）
         final int minBrokenBldgLimit = 1;
         final int maxBrokenBldgLimit = 14;
-
-        //同時に走らせるスレッドの最大数
-        final int maxThreadsNum = 3;
+        final int maxThreadsNum = 3;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
 
         /**出力関連**/
-        File datedir = Output.getDateDir();
+        File dateDir = Output.getDateDir();
 
         /**シミュレーション**/
         double sTime = System.nanoTime();
-        ArrayDeque<Thread> threads = new ArrayDeque<>();
-        Thread[] runnning = new Thread[maxBrokenBldgLimit - minBrokenBldgLimit + 1];
-        ThreadGroup group = new ThreadGroup("simulation");
-        for(int i = minBrokenBldgLimit ; i <= maxBrokenBldgLimit ;i++) {
-            Runnable run = new Main(i, datedir, bldgNum);
-            Thread thread = new Thread(group, run, "limit:" + i);
-            threads.offer(thread);
-        }
 
-        //スレッドをmaxスレッド数を超えないように割り振る
-        int tmpRunningThreads = 0;
-        while (!threads.isEmpty()) {
-            if (maxThreadsNum > group.activeCount()) {
-                Thread th = threads.remove();
-                System.out.println(th.getName() +" is now running");
-                th.start();
-                runnning[tmpRunningThreads++] = th;
-            }
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        simulation(bldgNum, minBrokenBldgLimit, maxBrokenBldgLimit, maxThreadsNum, dateDir);
 
-        //全てのスレッドの終了を待つ
-        try {
-            for (int i = 0; i < runnning.length; i++) {
-                runnning[i].join();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println((System.nanoTime()-sTime)/1.0e9 + "s");
+        System.out.println((System.nanoTime() - sTime) / 1.0e9 + "s");
 
-        /**全体のサマリーの出力**/
-        Output.limitRegulationPoint(datedir, minBrokenBldgLimit,maxBrokenBldgLimit);
+        /** 全体のサマリーの出力 **/
+        Output.limitRegulationPoint(dateDir, minBrokenBldgLimit, maxBrokenBldgLimit);
     }
 
-    Main(final int brokenBldglimit, final File datedir, final int bldgNum){
+    /**
+     * スレッドごとの変数を初期化
+     *
+     * @param brokenBldglimit シナリオ使用時におけるビル破壊数
+     * @param dateDir         シミュレーションで生成したデータを突っ込むディレクトリの作成
+     * @param bldgNum         中継ビルの数
+     */
+    Main(final int brokenBldglimit, final File dateDir, final int bldgNum) {
         this.bldgNum = bldgNum;
         this.brokenBldglimit = brokenBldglimit;
-        this.datedir = datedir;
+        this.dateDir = dateDir;
     }
 
     public void run() {
-
         /****各種設定****/
 
         // ループの回数
@@ -102,88 +73,70 @@ public class Main implements Runnable {
         final double ammount = 0;
 
         //需要を元の呼の発生量の何倍に設定するか
-        int mag = 5;
+        final int mag = 5;
 
         //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
-        int outputMethod[] = {3,6};
+        final int outputMethod[] = {3, 6};
 
         //規制の書け方 0:規制なし/手動規制 1: 4角規制方針の比較
-        int regMethod = 1;
+        final int regMethod = 1;
 
         /*** 初期化関連 ***/
 
         //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
         final int[][] regulationMethod = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 
-        // ループ毎の最大呼損率
-        double[] worstCallLossRate = new double[loopNum];
+        // 時間ループ毎の最大呼損率
+        double[] worstcallLossRate = new double[loopNum];
 
         //ループ毎の平均呼損率
-        double[] aveCallLossRate = new double[loopNum];
+        double[] avecallLossRate = new double[loopNum];
 
         //ループ毎の呼損率の合計
-        double[] sumCallLossRate = new double[loopNum];
+        double[] sumcallLossRate = new double[loopNum];
 
         //ループ毎の呼損率の合計
-        double[] sumCallLoss = new double[loopNum];
+        double[] sumqtyLostCalls = new double[loopNum];
 
         //ループ毎の呼損率のmax-min
-        double[] minMaxCallLossRate = new double[loopNum];
+        double[] minMaxcallLossRate = new double[loopNum];
 
         // 計算時間の算出
         double calcTime = System.nanoTime();
 
-        // 24時間
+        //何時間分のシミュレーションを行うか
         final int hour = 24;
 
-        // 一時間=60分
+        //タイムステップ ( hour * 60分)
         final int timeLength = hour * 60;
 
-        // 1リンク設計回線数
-        final int kaisensu = 10000 * 2;
-        final int kunaiKaisensu = 14200 * 2; // 区内中継リンク
-        final int kugaiKaisensu = 27100 * 2;// 区外中継リンク
+        // 各リンク設計回線数
+        final int localLinkCapacity = 11200 * 2;
+        final int kunaiLinkCapacity = 16300 * 2;
+        final int kugaiLinkCapacity = 33200 * 2;
 
-        // ファイル出力
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
-        String time = sdf.format(c.getTime());
+        //このスレッドで使うディレクトリの作成
+        File timeDir = getTimeDir();
 
-        File timedir = new File(datedir + "/" + time + "/");
-        if (!timedir.exists()) {
-            timedir.mkdir();
-        }
-
-        // ビルディングリストオブジェクトの作成
+        /** 初期化　**/
         BuildingList bldgs = new BuildingList(bldgNum);
-
-        // CallListの初期化
         CallList callList = new CallList(timeLength, bldgs);
-
-        //このスレッドで使うoutputオブジェクト
         Output output = new Output();
-
-        // 全てのリンク情報の取得
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
-
-        // 全てのビル情報の取得
         Building[] bldgList = bldgs.getBldgList();
+        bldgs.getScale();//シナリオの震度分布の読み込み
 
-        //シナリオの読み込み
-        bldgs.getScale();
         loop:
         for (int loop = 0; loop < loopNum; loop++) {
             /***通信規制の設定***/
-            // 引数の番号で通話時間規制方法が変わる 0:規制なし 1:一分間に限定
-            int timeRegulation = 0;
-            //通信量規制 0:規制なし, 1:規制有り
-            int ammountRegulation = 0;
+            int timeRegulation = 0; //通信時間規制 0:規制なし 1:一分間に限定
+            int ammountRegulation = 0; //通信量規制   0:規制なし, 1:規制有り
             switch (regMethod) {
-                case 0:
+                case 0: //ループによって規制方針を切り替えない
                     timeRegulation = 0;
                     ammountRegulation = 0;
                     break;
-                case 1:
+                case 1: //ループによって規制方針を切り替える
                     timeRegulation = regulationMethod[loop % 4][0];
                     ammountRegulation = regulationMethod[loop % 4][1];
                     break;
@@ -193,289 +146,338 @@ public class Main implements Runnable {
             // Callの持続時間の方針: 0:制限なし 1:１分まで
             callList.reset(timeRegulation);
 
-            // リンクとビルのbroken状態を回復する(シナリオでないときと、ループが木数回目の時)
+            // リンクとビルのbroken状態を回復する(シナリオでないときと、シナリオでかつループが4の倍数のとき)
             if (scenario == 0 || loop % 4 == 0) {
                 bldgs.resetBroken();
             }
 
-            // CallExist[t] = 時刻tに存在する呼の数
-            int callExist[] = new int[timeLength];
+            // qtyExistingCalls[t] = 時刻tに存在する呼の数 ;  qty = quantitiy(量・数）の意味で使う
+            int qtyExistingCalls[] = new int[timeLength];
 
-            // CallOccur[t] = 時刻tに生起した呼の数
-            int callOccur[] = new int[timeLength];
+            // qtyOccurredCalls[t] = 時刻tに生起した呼の数
+            int qtyOccurredCalls[] = new int[timeLength];
 
-            // CallLoss[t] = 時刻tに損失した呼の数
-            int callLoss[] = new int[timeLength];
-
-            // CallLossRate[t] = 時刻tの呼損率
-            double callLossRate[] = new double[timeLength];
+            // qtyLostCalls[t] = 時刻tに損失した呼の数
+            int qtyLostCalls[] = new int[timeLength];
 
             // 削除された呼の数
-            int callDeleted[] = new int[timeLength];
+            int qtyDeletedCalls[] = new int[timeLength];
 
-            // average holding time
+            // callLossRate[t] = 時刻tの呼損率
+            double callLossRate[] = new double[timeLength];
+
+            // 保留時間の平均
             double[] avgHoldTime = new double[timeLength];
 
-            // max.get(t) = 時刻tにおいて発生した呼の中で最も終了時刻の遅いものの値
-            ArrayList<Integer> max = new ArrayList<>();
+            // timeOfLastCall.get(t) = 時刻tにおいて発生した呼の中で最も終了時刻の遅いものの値
+            ArrayList<Integer> timeOfLastCall = new ArrayList<>();
 
-            // 区内リンクの回線数設定
-            for (Link ln : bldgs.getLinkList()) {
-                ln.iniCap(timeLength, kaisensu);
-            }
-            // 区内中継リンクの回線数設定
-            for (Link ln : bldgs.getExLinkList()) {
-                ln.iniCap(timeLength, kunaiKaisensu);
-            }
-            // 区外中継リンクの回線数設定
-            bldgs.getOutLink().iniCap(timeLength, kugaiKaisensu);
+            //リンクの回線数を初期化
+            initializeLinks(timeLength, localLinkCapacity, kunaiLinkCapacity, kugaiLinkCapacity, bldgs);
 
-            //現存する呼のリスト
-            ArrayList<Call> tmpCallList[] = new ArrayList[timeLength];
-            for (int i = 0; i < tmpCallList.length; i++) {
-                tmpCallList[i] = new ArrayList<>();
-            }
+
+            //existingCallList[t] = 時刻tに現存する呼のリスト
+            ArrayList<Call> existingCallList[] = new ArrayList[timeLength];
+            initArrayList(existingCallList);
 
             // endCallList[t] = 時刻tに終了する呼のリスト
             ArrayList<Call> endCallList[] = new ArrayList[timeLength + 100];
-            for (int i = 0; i < endCallList.length; i++) {
-                endCallList[i] = new ArrayList<>();
-            }
+            initArrayList(endCallList);
 
-            /***施設の破壊関連***/
-            //地震による影響で壊れるシナリオで使用
-            if (scenario == 1 && loop % 4 == 0) {
-                //破壊
-                bldgs.brokenByQuake(brokenBldglimit);
-            }
+            //シナリオ|手動による施設の破壊を行う
+            breakNetwork(scenario, brokenLink, brokenBuilding, ammount, outputMethod, bldgs, loop);
 
-            //ビル・リンクの破壊
-            if (brokenLink.length > 0) {
-                for (int i = 0; i < brokenLink.length; i++) {
-                    bldgs.findLink(brokenLink[i]).broken(ammount);
-                }
-
-            }
-            if (brokenBuilding.length > 0) {
-                for (String bname : brokenBuilding) {
-                    bldgs.findBldg(bname).broken();
-                }
-            }
-
-            if (contain(outputMethod, 4)) {
-                // 区内リンクを順に破壊する用
-
-                bldgs.findLink(loop).broken(ammount);
-
-                // 区内中継リンクを破壊する
-                // bldgs.exLinkList.get(loop).broken(ammount);
-
-                // 区外リンクを破壊する
-                // bldgs.outLink.broken(ammount);
-            }
-
-
-            System.out.println("limit : " +  brokenBldglimit + " loop : " + (loop + 1) + " , mag : " + mag + " ");
+            System.out.println("limit : " + brokenBldglimit + " loop : " + (loop + 1) + " , mag : " + mag + " ");
             double loopStartTime = System.nanoTime();
-            // 時間ループの開始
+
+            // 時間ループの開始（シミュレーション一回分)
             for (int t = 0; t < timeLength; t++) {
+                int latestTimeOfCalls = t;// 此度発生した呼の終了時刻の最遅値
                 // capacityと現存呼は保存される
                 if (t > 0) {
                     for (Link ln : allLinks) {
                         ln.saveCap(t);
                     }
-                    callExist[t] = callExist[t - 1];
+                    qtyExistingCalls[t] = qtyExistingCalls[t - 1];
                 }
 
-                // この時間における呼のリスト
-                int M = t;// 此度発生した呼の終了時刻の最遅値
-
-                // 呼数の計算。及び呼候補の生成
-                ArrayList<CandiCall> candiCallList = new ArrayList();
-                int occur;
-                int limit;
-                CandiCall candidate;
-                for (Building start : bldgList) {
-                    for (Building dest : bldgList) {
-//                        if (start.bname.equals(dest.bname) && dest.bname.equals("区外")) {
-                        if(start == dest && dest.getBname().equals("区外")){
-                            continue;
-                        }
-                        occur = start.occurence(t, dest, mag);
-                        //区外発信呼の切断シミュレーション用
-                        if (ammountRegulation == 1 && start.isKugai()) {
-                            limit = start.occurence(t, dest, 1) * 2;
-                            if (bldgs.getOutLink().getCapacity() + occur > limit) {
-                                //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
-                                occur = limit - bldgs.getOutLink().getCapacity();
-                            }
-                        }
-                        for (int i = 0; i < occur; i++) {
-                            candidate = new CandiCall(start, dest, t);
-                            candiCallList.add(candidate);
-                            callOccur[t]++;
-                        }
-                    }
-                }
-
-                // 候補呼リストのシャッフル
+                //呼の生起
+                ArrayList<CandiCall> candiCallList = occurrenceOfCalls(mag, bldgs, bldgList, ammountRegulation, qtyOccurredCalls, t);
                 Collections.shuffle(candiCallList);
 
-                // 候補呼リストに従って呼の生成。及び接続可能性評価
-                for (CandiCall can : candiCallList) {
-                    Call call = can.generateCall(callList);
-                    if (call.success) {
-                        tmpCallList[t].add(call);
-                        callExist[t]++;
-                        // 終了時刻の最遅値の更新
-                        if (M < call.EndTime) {
-                            M = call.EndTime;
-                        }
-                    } else {
-                        callLoss[t]++;
-                    }
-                }
+                //ルーティング及び接続可能性評価
+                latestTimeOfCalls = routing(callList, qtyExistingCalls, qtyLostCalls, existingCallList, t, latestTimeOfCalls, candiCallList);
+                timeOfLastCall.add(latestTimeOfCalls);
 
-                max.add(M);
+                //時刻tに終了する呼の消去
+                deleteCalls(callList, qtyExistingCalls, qtyDeletedCalls, t);
 
-                // 時刻tに終了する呼の消去
-                for (Call call : callList.getLimitList(t)) {
-                    call.delete();
-                    callExist[t]--;
-                    callDeleted[t]++;
-                }
-                callList.clearLimitList(t);
-
-                // 有る時間帯tにおける生起呼の最長終了時間が訪れたらそのリストを破壊する
-                for (int i = 0; i < max.size(); i++) {
-                    // System.out.println(max.get(i));
-                    if (max.get(i) == t) {// 0時台以外から始める場合、+60*(開始時間-1)
-                        if (tmpCallList[i] != null) {
-                            tmpCallList[i].clear();
-                        }
-                    }
-                }
+                // 有る時間帯tにおける生起呼の最長終了時間が訪れたらそのリストのメモリを解放する
+                releaseExisitingCallList(timeOfLastCall, existingCallList, t);
 
                 // 呼損率の算出
-                callLossRate[t] = ((double) callLoss[t] * 100) / (double) callOccur[t];
-                avgHoldTime[t] = Double.valueOf(callList.getSumHoldTime(t)) / Double.valueOf(callOccur[t]);
-                double ntime = System.nanoTime() - calcTime;
-
-//                if (t < timeLength && t % 100 == 0) {
-//                    System.out.print(".");
-//                }
-                //モニタ
-//                monitor("----------------loop:" + (loop + 1) + "---time:" + t + "----mag:" + mag + "------------------", callExist[t], callOccur[t], callLoss[t], callLossRate[t], callDeleted[t], avgHoldTime[t], ntime);
+                callLossRate[t] = ((double) qtyLostCalls[t] * 100) / (double) qtyOccurredCalls[t];
+                avgHoldTime[t] = Double.valueOf(callList.getSumHoldTime(t)) / Double.valueOf(qtyOccurredCalls[t]);
             }
 
 
-            switch (criterion) {
-                case 0:
-                    // 呼損率の最大値格納
-                    worstCallLossRate[loop] = Output.maxInArray(callLossRate);
-                    break;
-                case 1:
-                    //平均呼損率の格納
-                    aveCallLossRate[loop] = Output.aveInArray(callLossRate);
-                    break;
-                case 2:
-                    //呼損率の合計の格納
-                    sumCallLossRate[loop] = Output.sumInArray(callLossRate);
-                    break;
-                case 3:
-                    //全損失呼の数の格納
-                    sumCallLoss[loop] = Output.sumInArray(callLoss);
-                    break;
-                case 4:
-                    //呼損率のmin-max
-                    minMaxCallLossRate[loop] = Output.minMaxInArray(callLossRate);
-                    break;
-                case 5:
-                    //全て記録
-                    worstCallLossRate[loop] = Output.maxInArray(callLossRate);
-                    aveCallLossRate[loop] = Output.aveInArray(callLossRate);
-                    sumCallLossRate[loop] = Output.sumInArray(callLossRate);
-                    sumCallLoss[loop] = Output.sumInArray(callLoss);
-                    minMaxCallLossRate[loop] = Output.minMaxInArray(callLossRate);
-                    break;
-            }
+            //全て記録
+            worstcallLossRate[loop] = Output.maxInArray(callLossRate);
+            avecallLossRate[loop] = Output.aveInArray(callLossRate);
+            sumcallLossRate[loop] = Output.sumInArray(callLossRate);
+            sumqtyLostCalls[loop] = Output.sumInArray(qtyLostCalls);
+            minMaxcallLossRate[loop] = Output.minMaxInArray(callLossRate);
 
-
-//            System.out.println("-----------------OUTPUT start-------------------");
-            // summary
-            if (contain(outputMethod, 5)) {
-                output.summaryOutput(timedir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
-            }
-
-            // standard outputを行う
-            if (contain(outputMethod, 0)) {
-                output.StandardOutput(timeLength, timedir, callLossRate, loop, bldgs);
-            }
-
-
-            //通信規制の方針を比較する
-            if (contain(outputMethod, 3)) {
-                if (loop == 0) {
-                    output.regulaitonMethodDevidedInitialize(criNum);
-                }
-
-                output.regulationMethodDevided(hour, timeLength, timedir, loop, mag, callExist,
-                        callOccur, callLoss, callLossRate, callDeleted, avgHoldTime, loopNum, timeRegulation, ammountRegulation, criNum,bldgs.getBldgList());
-
-
-            }
-
-
-            //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
-            if (contain(outputMethod, 6) && loop == loopNum - 1 && criterion == 5) {
-                output.regulationPointOutput(timedir, criNum,bldgs,brokenBldglimit);
-
-            } else if (contain(outputMethod, 6) && loop == loopNum - 1) {
-                output.regulationPointOutput(timedir, 0, bldgs,brokenBldglimit);
-            }
-
-            //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
-            if (contain(outputMethod, 2)) {
-                output.magDevidedOutput(hour, timeLength, timedir, loop, mag, callExist, callOccur, callLoss,
-                        callLossRate, callDeleted, avgHoldTime);
-            }
-
-            //発生area別に呼数を出力する
-            if (contain(outputMethod, 1)) {
-                output.areaDevidedKosu(timedir, loop, callList);
-            }
-
-//            System.out.println("-----------------OUTPUT finished-------------------");
+            output(loopNum, criterion, criNum, brokenLink, brokenBuilding, ammount, mag, outputMethod, hour, timeLength, timeDir, bldgs, callList, output, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
             double loopDur = (System.nanoTime() - loopStartTime) * 1.0e-9;
-            System.out.println("limit-" + brokenBldglimit+ ":loop-" + (loop + 1) + " time :" + loopDur);
+            System.out.println("limit-" + brokenBldglimit + ":loop-" + (loop + 1) + " time :" + loopDur);
         }
 
 
-        // //リンクを順に破壊するときのためのExcel出力
+        //リンクを順に破壊するときのためのExcel出力
         if (contain(outputMethod, 4)) {
             double arr[] = null;
             switch (criterion) {
                 case 0:
-                    arr = worstCallLossRate;
+                    arr = worstcallLossRate;
                     break;
                 case 1:
-                    arr = aveCallLossRate;
+                    arr = avecallLossRate;
                     break;
                 case 2:
-                    arr = sumCallLossRate;
+                    arr = sumcallLossRate;
                     break;
                 case 3:
-                    arr = sumCallLoss;
+                    arr = sumqtyLostCalls;
                     break;
                 case 4:
-                    arr = minMaxCallLossRate;
+                    arr = minMaxcallLossRate;
             }
-            output.BreakLinkInOrderOutput(loopNum, arr, timedir, criterion);
+            output.BreakLinkInOrderOutput(loopNum, arr, timeDir, criterion);
         }
 
 
         calcTime = System.nanoTime() - calcTime;
         System.out.println("計算時間：" + (calcTime * (Math.pow(10, -9))) + "s");
+    }
+
+    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, BuildingList bldgs, CallList callList, Output output, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
+        // summary
+        if (contain(outputMethod, 5)) {
+            output.summaryOutput(timeDir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
+        }
+
+        // standard outputを行う
+        if (contain(outputMethod, 0)) {
+            output.StandardOutput(timeLength, timeDir, callLossRate, loop, bldgs);
+        }
+
+
+        //通信規制の方針を比較する
+        if (contain(outputMethod, 3)) {
+            if (loop == 0) {
+                output.regulaitonMethodDevidedInitialize(criNum);
+            }
+
+            output.regulationMethodDevided(hour, timeLength, timeDir, loop, mag, qtyExistingCalls,
+                    qtyOccurredCalls, qtyLostCalls, callLossRate, qtyDeletedCalls, avgHoldTime, loopNum, timeRegulation, ammountRegulation, criNum, bldgs.getBldgList());
+        }
+
+
+        //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
+        if (contain(outputMethod, 6) && loop == loopNum - 1 && criterion == 5) {
+            output.regulationPointOutput(timeDir, criNum, bldgs, brokenBldglimit);
+
+        } else if (contain(outputMethod, 6) && loop == loopNum - 1) {
+            output.regulationPointOutput(timeDir, 0, bldgs, brokenBldglimit);
+        }
+
+        //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
+        if (contain(outputMethod, 2)) {
+            output.magDevidedOutput(hour, timeLength, timeDir, loop, mag, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls,
+                    callLossRate, qtyDeletedCalls, avgHoldTime);
+        }
+
+        //発生area別に呼数を出力する
+        if (contain(outputMethod, 1)) {
+            output.areaDevidedKosu(timeDir, loop, callList);
+        }
+    }
+
+
+    private void releaseExisitingCallList(ArrayList<Integer> timeOfLastCall, ArrayList<Call>[] existingCallList, int t) {
+        for (int i = 0; i < timeOfLastCall.size(); i++) {
+            if (timeOfLastCall.get(i) == t) {
+                if (existingCallList[i] != null) {
+                    existingCallList[i].clear();
+                }
+            }
+        }
+    }
+
+    private void deleteCalls(CallList callList, int[] qtyExistingCalls, int[] qtyDeletedCalls, int t) {
+        for (Call call : callList.getLimitList(t)) {
+            call.delete();
+            qtyExistingCalls[t]--;
+            qtyDeletedCalls[t]++;
+        }
+        callList.clearLimitList(t);
+    }
+
+    private int routing(CallList callList, int[] qtyExistingCalls, int[] qtyLostCalls, ArrayList<Call>[] existingCallList, int t, int latestTimeOfCalls, ArrayList<CandiCall> candiCallList) {
+        for (CandiCall can : candiCallList) {
+            Call call = can.generateCall(callList);
+            if (call.success) {
+                existingCallList[t].add(call);
+                qtyExistingCalls[t]++;
+                // 終了時刻の最遅値の更新
+                if (latestTimeOfCalls < call.EndTime) {
+                    latestTimeOfCalls = call.EndTime;
+                }
+            } else {
+                qtyLostCalls[t]++;
+            }
+        }
+        return latestTimeOfCalls;
+    }
+
+    private ArrayList<CandiCall> occurrenceOfCalls(int mag, BuildingList bldgs, Building[] bldgList, int ammountRegulation, int[] qtyOccurredCalls, int t) {
+        ArrayList<CandiCall> candiCallList = new ArrayList<>();
+        for (Building start : bldgList) {
+            for (Building dest : bldgList) {
+                if (start == dest && dest.getBname().equals("区外")) {
+                    continue;
+                }
+                int occur = start.occurence(t, dest, mag);
+                //区外発信呼の切断シミュレーション用
+                if (ammountRegulation == 1 && start.isKugai()) {
+                    int limit = start.occurence(t, dest, 1) * 2;
+                    if (bldgs.getOutLink().getCapacity() + occur > limit) {
+                        //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
+                        occur = limit - bldgs.getOutLink().getCapacity();
+                    }
+                }
+                for (int i = 0; i < occur; i++) {
+                    CandiCall candidate = new CandiCall(start, dest, t);
+                    candiCallList.add(candidate);
+                    qtyOccurredCalls[t]++;
+                }
+            }
+        }
+        return candiCallList;
+    }
+
+    private void initArrayList(ArrayList<Call>[] existingCallList) {
+        for (int i = 0; i < existingCallList.length; i++) {
+            existingCallList[i] = new ArrayList<>();
+        }
+    }
+
+    private void breakNetwork(int scenario, int[] brokenLink, String[] brokenBuilding, double ammount, int[] outputMethod, BuildingList bldgs, int loop) {
+        //地震による影響で壊れるシナリオで使用
+        if (scenario == 1 && loop % 4 == 0) {
+            //破壊
+            bldgs.brokenByQuake(brokenBldglimit);
+        }
+
+        //ビル・リンクの破壊
+        if (brokenLink.length > 0) {
+            for (int i = 0; i < brokenLink.length; i++) {
+                bldgs.findLink(brokenLink[i]).broken(ammount);
+            }
+
+        }
+        if (brokenBuilding.length > 0) {
+            for (String bname : brokenBuilding) {
+                bldgs.findBldg(bname).broken();
+            }
+        }
+
+        if (contain(outputMethod, 4)) {
+            // 区内リンクを順に破壊する用
+
+            bldgs.findLink(loop).broken(ammount);
+
+            // 区内中継リンクを破壊する
+            // bldgs.exLinkList.get(loop).broken(ammount);
+
+            // 区外リンクを破壊する
+            // bldgs.outLink.broken(ammount);
+        }
+    }
+
+    private void initializeLinks(int timeLength, int localLinkCapacity, int kunaiLinkCapacity, int kugaiLinkCapacity, BuildingList bldgs) {
+        // 区内リンクの回線数設定
+        for (Link ln : bldgs.getLinkList()) {
+            ln.iniCap(timeLength, localLinkCapacity);
+        }
+
+        // 区内中継リンクの回線数設定
+        for (Link ln : bldgs.getExLinkList()) {
+            ln.iniCap(timeLength, kunaiLinkCapacity);
+        }
+
+        // 区外中継リンクの回線数設定
+        bldgs.getOutLink().iniCap(timeLength, kugaiLinkCapacity);
+    }
+
+    private File getTimeDir() {
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
+        String time = sdf.format(c.getTime());
+
+        File timeDir = new File(dateDir + "/" + time + "/");
+        if (!timeDir.exists()) {
+            timeDir.mkdir();
+        }
+        return timeDir;
+    }
+
+    private static void simulation(int bldgNum, int minBrokenBldgLimit, int maxBrokenBldgLimit, int maxThreadsNum, File dateDir) {
+        ArrayDeque<Thread> threads = new ArrayDeque<>();
+        Thread[] runThreads = new Thread[maxBrokenBldgLimit - minBrokenBldgLimit + 1];
+        ThreadGroup group = new ThreadGroup("simulation");
+
+        prepareThreads(bldgNum, minBrokenBldgLimit, maxBrokenBldgLimit, dateDir, threads, group);
+
+        runThreads(maxThreadsNum, threads, runThreads, group);
+
+        waitForThreadsEnd(runThreads);
+    }
+
+    private static void runThreads(int maxThreadsNum, ArrayDeque<Thread> threads, Thread[] runThreads, ThreadGroup group) {
+        int tmpRunningThreads = 0;
+        while (!threads.isEmpty()) {
+            if (maxThreadsNum > group.activeCount()) {
+                Thread th = threads.remove();
+                System.out.println(th.getName() + " is running");
+                th.start();
+                runThreads[tmpRunningThreads++] = th;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void waitForThreadsEnd(Thread[] runThreads) {
+        try {
+            for (int i = 0; i < runThreads.length; i++) {
+                runThreads[i].join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void prepareThreads(int bldgNum, int minBrokenBldgLimit, int maxBrokenBldgLimit, File dateDir, ArrayDeque<Thread> threads, ThreadGroup group) {
+        for (int i = minBrokenBldgLimit; i <= maxBrokenBldgLimit; i++) {
+            Runnable run = new Main(i, dateDir, bldgNum);
+            Thread thread = new Thread(group, run, "limit:" + i);
+            threads.offer(thread);
+        }
     }
 
     private static void monitor(String x, int i, int i1, int callLos, double v, int i2, double v1, double ntime) {
@@ -486,7 +488,7 @@ public class Main implements Runnable {
         System.out.println("存在：" + i);
         System.out.println("deleted calls ..." + i2);
         // System.out.println("sumHoldTIme:" + Call.sumHoldTime[t]);
-        // System.out.println("call occur:" + callOccur[t]);
+        // System.out.println("call occur:" + qtyOccurredCalls[t]);
         System.out.println("average Holding Time:" + v1);
         System.out.println("passed time:" + ntime + "ns");
     }
