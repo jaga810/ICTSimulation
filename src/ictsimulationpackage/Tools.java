@@ -2,7 +2,7 @@ package ictsimulationpackage;
 
 public class Tools {
 	public static void main(String args[]){
-		Network list = new Network(102);
+		Network list = new Network();
 		Building bldg = list.findBldg("墨田");
 		double[]sum  = new double[100];
 		int index = 0;

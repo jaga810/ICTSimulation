@@ -63,14 +63,14 @@ public class Call {
                     time < 14 * 60 && time > 12 * 60) {
                 if ((start.getAreaBldg() == dest.getAreaBldg())) {
                     for (Link ln : linkList) {
-                        if (ln.getId() < 102) {
-                            group.addAreaKosu(ln.getId());
+                        if (ln.getLinkId() < 102) {
+                            group.addAreaKosu(ln.getLinkId());
                         }
                     }
                 } else {
                     for (Link ln : linkList) {
-                        if (ln.getId() < 102) {
-                            group.addExKosu(ln.getId());
+                        if (ln.getLinkId() < 102) {
+                            group.addExKosu(ln.getLinkId());
                         }
                     }
                 }
@@ -83,10 +83,7 @@ public class Call {
             return;
         }
         for (Link ln : linkList) {
-            if (!ln.subCap()) {
-                System.out.println("capacity goes to 0");
-                System.out.println(1 / 0);
-            }
+            ln.subCap();
         }
     }
 }

@@ -118,7 +118,7 @@ public class Main implements Runnable {
         File timeDir = getTimeDir();
 
         /** 初期化　**/
-        Network bldgs = new Network(bldgNum);
+        Network bldgs = new Network();
         CallList callList = new CallList(timeLength, bldgs);
         Output output = new Output();
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
@@ -351,9 +351,9 @@ public class Main implements Runnable {
                 //区外発信呼の切断シミュレーション用
                 if (ammountRegulation == 1 && start.isKugai()) {
                     int limit = start.generateTraffic(t, dest, 1) * 2;
-                    if (bldgs.getOutLink().getCapacity() + occur > limit) {
+                    if (bldgs.getOutLink().getOccupiedCap() + occur > limit) {
                         //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
-                        occur = limit - bldgs.getOutLink().getCapacity();
+                        occur = limit - bldgs.getOutLink().getOccupiedCap();
                     }
                 }
                 for (int i = 0; i < occur; i++) {
@@ -412,7 +412,7 @@ public class Main implements Runnable {
         }
 
         // 区内中継リンクの回線数設定
-        for (Link ln : bldgs.getExLinkList()) {
+        for (Link ln : bldgs.getKunaiRelayLinkList()) {
             ln.iniCap(timeLength, kunaiLinkCapacity);
         }
 

@@ -22,18 +22,18 @@ public class Network {
 	private Building[] bldgList = new Building[bldgNum + 1];
 	private Building[] kunaiRelayBldgList = new Building[bldgNum];
 	private Building[] kunaiBldgList = new Building[bldgNum];
-	private Building kugaiRelayBldg;
+	private Building   kugaiRelayBldg;
 
 	//various link lists
-	private ArrayList<Link> linkList = new ArrayList<Link>();
-	private ArrayList<Link> exLinkList = new ArrayList<Link>();
+	private ArrayList<Link> linkList = new ArrayList();
+	private ArrayList<Link> kunaiRelayLinkList = new ArrayList();
 	private ArrayList<Link> allLinkList = new ArrayList<Link>();
 
 	//for search building from name
-	private HashMap<String, Building> bldgIndex = new HashMap<String, Building>();
+	private HashMap<String, Building> bldgIndex = new HashMap();
 
 	//for search building from linkIndex
-	private HashMap<Integer, Link> linkIndex = new HashMap<Integer, Link>();
+	private HashMap<Integer, Link> linkIndex = new HashMap();
 	private Link outLink;
 
 
@@ -50,7 +50,7 @@ public class Network {
 
 		// リンク全体のリスト作成
 		allLinkList.addAll(linkList);
-		allLinkList.addAll(exLinkList);
+		allLinkList.addAll(kunaiRelayLinkList);
 		allLinkList.add(outLink);
 
 		// ビルのインデックス（名前検索）の作成
@@ -58,7 +58,7 @@ public class Network {
 		makeLinkIndex();
 
 		//kosuの読み込み
-		KosuDownloader.download(findBldg("区外"), this);
+		Settings.importExcelData(getKugaiRelayBldg(), this);
 	}
 
     /**
@@ -123,7 +123,7 @@ public class Network {
 
             Link ln = new Link( left, left.getBid() + 200);
             left.setKunaiLinks(ln);
-            exLinkList.add(ln);
+            kunaiRelayLinkList.add(ln);
         }
 	}
 
@@ -185,7 +185,7 @@ public class Network {
 
 	private  void makeLinkIndex() {
 		for (Link ln : allLinkList) {
-			linkIndex.put(ln.getId(), ln);
+			linkIndex.put(ln.getLinkId(), ln);
 		}
 	}
 
@@ -235,8 +235,8 @@ public class Network {
 		return linkList;
 	}
 
-	public ArrayList<Link> getExLinkList() {
-		return exLinkList;
+	public ArrayList<Link> getKunaiRelayLinkList() {
+		return kunaiRelayLinkList;
 	}
 
 	public Link getOutLink() {

@@ -18,7 +18,7 @@ import java.util.HashMap;
 public class EarlangB2 {
     public static void main(String args[]) {
         EarlangB2 e = new EarlangB2();
-        Network bldgs = new Network(102);
+        Network bldgs = new Network();
 
 
 
@@ -105,7 +105,7 @@ public class EarlangB2 {
             e.printStackTrace();
         }
         for (Link ln : bldgs.getAllLinkList()) {
-            System.out.println(ln.getId() + " : " + ln.getMaxTrrafic());
+            System.out.println(ln.getLinkId() + " : " + ln.getMaxTrrafic());
         }
     }
 
@@ -168,7 +168,7 @@ public class EarlangB2 {
 
             //リンク別の呼損率の計算
             for (Link ln : allLinks) {
-                int kaisen = ln.getIniCap();
+                int kaisen = ln.getCapacity();
                 double clr[] = new double[24];
                 double cl[] = new double[24];
 
@@ -229,7 +229,7 @@ public class EarlangB2 {
 
             //リンク別の呼損率の計算
             for (Link ln : allLinks) {
-                int kaisen = ln.getIniCap();
+                int kaisen = ln.getCapacity();
                 BigDecimal clr[] = new BigDecimal[24];
                 BigDecimal cl[] = new BigDecimal[24];
                 int h = 10;
@@ -255,7 +255,7 @@ public class EarlangB2 {
                     gcList[h].add(BigDecimal.valueOf(trrafic));
                     clList[h].add(cl[h]);
 
-                    System.out.println(ln.getId() +",h:" + h + " cl:" + cl[h]);
+                    System.out.println(ln.getLinkId() +",h:" + h + " cl:" + cl[h]);
 //                }
             }
 
@@ -277,9 +277,9 @@ public class EarlangB2 {
 
         for (Link ln : bldgs.getAllLinkList()) {
             int val = 0;
-            int id = ln.getId();
+            int id = ln.getLinkId();
 
-            if (ln.getId() < 200) {
+            if (ln.getLinkId() < 200) {
                 val = kaisen;
             } else if (id < 1000) {
                 val = exKaisen;
@@ -290,7 +290,7 @@ public class EarlangB2 {
             }
 
             ln.iniCap(24, val);
-            System.out.println(ln.getId() + " link is ok");
+            System.out.println(ln.getLinkId() + " link is ok");
         }
     }
 

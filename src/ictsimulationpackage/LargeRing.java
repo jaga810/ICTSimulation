@@ -2,16 +2,19 @@ package ictsimulationpackage;
 
 import java.util.ArrayList;
 
+/**
+ * あるビル->ビルへの
+ */
 public class LargeRing {
     private Network bldgList;
-    private Building nerima;
+    private Building kugaiRelayBldg;
     private Link outLink;
     private SmallRing smallRing;
 
     LargeRing(Network bldgList) {
         this.bldgList = bldgList;
-        nerima = bldgList.findBldg("練馬");
-        outLink = nerima.getOutLink();
+        kugaiRelayBldg = bldgList.findBldg("練馬");
+        outLink = kugaiRelayBldg.getOutLink();
         smallRing = new SmallRing();
     }
 
@@ -68,7 +71,7 @@ public class LargeRing {
         // 区外 -> 区内
         if (start.isKugai()) {
             // 区外から練馬
-            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
+            if (outLink.isBroken() || start.isBroken() || kugaiRelayBldg.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
@@ -76,28 +79,28 @@ public class LargeRing {
                 link.add(outLink);
             }
             // ゴールが練馬ならここでおわり
-            if (dest == nerima) {
+            if (dest == kugaiRelayBldg) {
                 return link;
             }
             // 練馬からゴール ルートがnullで例外発生
             try {
-                link.addAll(route(nerima, dest));
+                link.addAll(route(kugaiRelayBldg, dest));
             } catch (NullPointerException e) {
-                // System.out.println("outRoute->route(nerima, dest) is null");
+                // System.out.println("outRoute->route(kugaiRelayBldg, dest) is null");
                 return null;
             }
         } else {
             // 区内 -> 区外
             // 区内から練馬
-            if (start != nerima) {
-                link = route(start, nerima);
+            if (start != kugaiRelayBldg) {
+                link = route(start, kugaiRelayBldg);
                 if (link == null) {
                     // ルートが見つからない場合の処理
                     return null;
                 }
             }
             // 練馬から区外
-            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
+            if (outLink.isBroken() || start.isBroken() || kugaiRelayBldg.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
@@ -118,7 +121,7 @@ public class LargeRing {
         // 区外 -> 区内
         if (start.isKugai()) {
             // 区外から練馬
-            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
+            if (outLink.isBroken() || start.isBroken() || kugaiRelayBldg.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
@@ -126,28 +129,28 @@ public class LargeRing {
                 link.add(outLink);
             }
             // ゴールが練馬ならここでおわり
-            if (dest == nerima) {
+            if (dest == kugaiRelayBldg) {
                 return link;
             }
             // 練馬からゴール ルートがnullで例外発生
             try {
-                link.addAll(route(nerima, dest, isRight));
+                link.addAll(route(kugaiRelayBldg, dest, isRight));
             } catch (NullPointerException e) {
-                // System.out.println("outRoute->route(nerima, dest) is null");
+                // System.out.println("outRoute->route(kugaiRelayBldg, dest) is null");
                 return null;
             }
         } else {
             // 区内 -> 区外
             // 区内から練馬
-            if (start != nerima) {
-                link = route(start, nerima, isRight);
+            if (start != kugaiRelayBldg) {
+                link = route(start, kugaiRelayBldg, isRight);
                 if (link == null) {
                     // ルートが見つからない場合の処理
                     return null;
                 }
             }
             // 練馬から区外
-            if (outLink.isBroken() || start.isBroken() || nerima.isBroken()) {
+            if (outLink.isBroken() || start.isBroken() || kugaiRelayBldg.isBroken()) {
                 // リンクまたはビル壊れている
                 return null;
             } else {
