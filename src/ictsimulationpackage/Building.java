@@ -46,7 +46,7 @@ public class Building {
         //区外ビル作成用
         this.bname = bname;
         this.bid = bid;
-        this.kunaiRelayBuilding = this;
+        this.kunaiRelayBuilding = null;
 
         Utility.initHashMap(kosu);
         Utility.initHashMap(kosuTaken);

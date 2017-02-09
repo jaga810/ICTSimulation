@@ -14,7 +14,7 @@ public class LargeRing {
     private Link kugaiRelayLink;
     private SmallRing smallRing;
 
-    LargeRing(Network network) {
+    public LargeRing(Network network) {
         this.network = network;
         kugaiRelayBldg = network.getKugaiRelayBldg();
         kugaiBldg = network.getKugaiBldg();
@@ -101,7 +101,7 @@ public class LargeRing {
         Building dKunaiRelayBldg = dest.getKunaiRelayBldg();
 
         // startが区内中継ビルでないなら中継ビルまでルーティング。失敗したらnull返す
-        if (start.isKunaiRelayBuilding() && !routingOnLocalRing(start, sKunaiRelayBldg, usedLinkList))
+        if (!start.isKunaiRelayBuilding() && !routingOnLocalRing(start, sKunaiRelayBldg, usedLinkList))
             return null;
 
         // スタートエリアからゴールエリアまでのルーティング。失敗したらnull
@@ -109,7 +109,7 @@ public class LargeRing {
             return null;
 
         // destが区内中継ビルでないなら中継ビルまでルーティング。失敗したらnull返す
-        if (dest.isKunaiRelayBuilding() && !routingOnLocalRing(dKunaiRelayBldg, dest, usedLinkList))
+        if (!dest.isKunaiRelayBuilding() && !routingOnLocalRing(dKunaiRelayBldg, dest, usedLinkList))
             return null;
 
         return usedLinkList;

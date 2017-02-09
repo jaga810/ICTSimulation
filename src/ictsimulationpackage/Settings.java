@@ -79,8 +79,9 @@ public class Settings {
 		return scale;
 	}
 
-    static void importExcelData(Building kugai, Network network) {
+    static void importExcelData(Network network) {
         Building[] list = sortBldgList(network);
+        Building kugai = network.getKugaiBldg();
         int bldgNumIncKugai = bldgNum + 2;
 
         //Excelデータの取得
@@ -123,7 +124,10 @@ public class Settings {
                     }
 
                     //呼数の更新
-                    double kosu = Double.parseDouble(row.getCell(k + 2).toString());
+                    double kosu = row.getCell(k + 2).getNumericCellValue();
+                    if (kosu == 0) {
+                        System.out.println("no!");
+                    }
                     if (i == 103) {
                         // start == 県外
                         start.setKosuTaken(hour, dest, kosu);

@@ -23,6 +23,7 @@ public class Network {
 	private Building[] kunaiRelayBldgList = new Building[bldgNum];
 	private Building[] kunaiBldgList = new Building[bldgNum];
 	private Building   kugaiRelayBldg;
+    private Building   kugaiBldg;
 
 	//various link lists
 	private ArrayList<Link> linkList = new ArrayList();
@@ -58,7 +59,7 @@ public class Network {
 		makeLinkIndex();
 
 		//kosuの読み込み
-		Settings.importExcelData(getKugaiRelayBldg(), this);
+		Settings.importExcelData(this);
 	}
 
     /**
@@ -136,7 +137,8 @@ public class Network {
 		Building kugaiBldg = new Building("区外", bldgNum);
 		kugaiBldg.setBldgL(bldg);
 		bldgList[bldgNum] = kugaiBldg;
-		this.kugaiRelayBldg = kugaiBldg;
+		this.kugaiRelayBldg = bldg;
+        this.kugaiBldg = kugaiBldg;
 
 		// 区外中継リンク
 		Link ln = new Link(bldg, kugaiBldg);
@@ -260,7 +262,7 @@ public class Network {
     }
 
     public Building getKugaiBldg() {
-        return bldgList[bldgNum];
+        return kugaiBldg;
     }
 
 	/** etc */

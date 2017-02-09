@@ -59,8 +59,6 @@ public class SmallRing {
 
         //探索を右回りで行うかどうかはランダム
         boolean isRight = Utility.halfProb();
-
-        //中継ビル同士の探索
         if (isRight) {
             usedLinkList = kunaiRelayRingRightSearch(start, dest);
         } else {
@@ -170,11 +168,15 @@ public class SmallRing {
         return false;
     }
 
-    // 中継ビル右回り探索
+    /**
+     * 区内中継リング上のルーティング
+     * 区内中継ビル以外は受け付けない
+     * @param start
+     * @param dest
+     * @return
+     */
     private ArrayList<Link> kunaiRelayRingRightSearch(Building start, Building dest) {
-        //同じローカルリング上になければエラー
-        if (!start.isOnSameLocalRing(dest)) {
-            System.out.println("SmallRing local ring light search error");
+        if (!start.isKunaiRelayBuilding() || !dest.isKunaiRelayBuilding()) {
             Utility.error();
         }
         //startかdestinationのどちらかが破壊
@@ -204,9 +206,7 @@ public class SmallRing {
 
     // 中継ビル左回り探索
     private ArrayList<Link> kunaiRelayRingLeftSearch(Building start, Building dest) {
-        //同じローカルリング上になければエラー
-        if (!start.isOnSameLocalRing(dest)) {
-            System.out.println("SmallRing local ring light search error");
+        if (!start.isKunaiRelayBuilding() || !dest.isKunaiRelayBuilding()) {
             Utility.error();
         }
         //startかdestinationのどちらかが破壊

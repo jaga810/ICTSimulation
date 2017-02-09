@@ -14,8 +14,8 @@ public class Main implements Runnable {
         /**各種設定変数**/
         final int bldgNum = 102; //使用する中継ビルの個数（県外除く）
         final int minBrokenBldgLimit = 1;
-        final int maxBrokenBldgLimit = 14;
-        final int maxThreadsNum = 3;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
+        final int maxBrokenBldgLimit = 1;
+        final int maxThreadsNum = 1;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
 
         /**出力関連**/
         File dateDir = Output.getDateDir();
