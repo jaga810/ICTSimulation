@@ -20,7 +20,7 @@ public class CallList {
     private int timeLength;
 
     //このsimulationで使用しているもの
-    private BuildingList bldgList;
+    private Network bldgList;
     private LargeRing largeRing;
 
     //このloopでのtimeregulationとHoldingTimeオブジェクト
@@ -57,7 +57,7 @@ public class CallList {
      *
      * @param tLength the length of time steps. ex) 24h * 60min = 1440 steps
      */
-    CallList(int tLength, BuildingList bldgList) {
+    CallList(int tLength, Network bldgList) {
         sumHoldTime = new int[tLength];
         limitList = new ArrayList[tLength];
         for (int i = 0; i < tLength; i++) {
@@ -129,7 +129,7 @@ public class CallList {
         return sumHoldTime[t];
     }
 
-    public BuildingList getBldgList() {
+    public Network getBldgList() {
         return bldgList;
     }
 }

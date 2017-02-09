@@ -1,13 +1,11 @@
 package ictsimulationpackage;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.Set;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -647,7 +645,7 @@ public class Output {
 
 
     public void  summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
-//        Building[] list = BuildingList.bldgList;
+//        Building[] list = Network.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
             file.createNewFile();
@@ -661,7 +659,7 @@ public class Output {
 
 //            filewriter.write("破壊ビル\n");
 //            for (int i = 0; i < list.length; i++) {
-//                if (list[i].broken) {
+//                if (list[i].makeBroken) {
 //                    filewriter.write(list[i].bname);
 //                    filewriter.write("\n");
 //                }
@@ -683,7 +681,7 @@ public class Output {
         }
     }
 
-    public void StandardOutput(int timeLength, File timedir, double[] arr, int loop, BuildingList bldgs) {
+    public void StandardOutput(int timeLength, File timedir, double[] arr, int loop, Network bldgs) {
         double capHis[][] = new double[102][timeLength];
         ArrayList<Link> links = bldgs.getAllLinkList();
 
@@ -761,7 +759,7 @@ public class Output {
         Output.output(file, wb);
     }
 
-     public synchronized void regulationPointOutput(File folder, int criNum, BuildingList bldgs, int brokenBldgLimit) {
+     public synchronized void regulationPointOutput(File folder, int criNum, Network bldgs, int brokenBldgLimit) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);

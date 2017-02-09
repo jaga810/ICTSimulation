@@ -25,7 +25,7 @@ public class Link {
 	Link(Building bldg, int id) {
 		//区内中継リンク
 		left = bldg;
-		right = bldg.getExBldgR();
+		right = bldg.getKuaniBldgR();
 		this.id = id;
 	}
 

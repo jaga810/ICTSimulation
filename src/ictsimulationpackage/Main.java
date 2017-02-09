@@ -1,7 +1,6 @@
 package ictsimulationpackage;
 
 import java.io.File;
-import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -119,7 +118,7 @@ public class Main implements Runnable {
         File timeDir = getTimeDir();
 
         /** 初期化　**/
-        BuildingList bldgs = new BuildingList(bldgNum);
+        Network bldgs = new Network(bldgNum);
         CallList callList = new CallList(timeLength, bldgs);
         Output output = new Output();
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
@@ -261,7 +260,7 @@ public class Main implements Runnable {
         System.out.println("計算時間：" + (calcTime * (Math.pow(10, -9))) + "s");
     }
 
-    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, BuildingList bldgs, CallList callList, Output output, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
+    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, Network bldgs, CallList callList, Output output, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
         // summary
         if (contain(outputMethod, 5)) {
             output.summaryOutput(timeDir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
@@ -341,17 +340,17 @@ public class Main implements Runnable {
         return latestTimeOfCalls;
     }
 
-    private ArrayList<CandiCall> occurrenceOfCalls(int mag, BuildingList bldgs, Building[] bldgList, int ammountRegulation, int[] qtyOccurredCalls, int t) {
+    private ArrayList<CandiCall> occurrenceOfCalls(int mag, Network bldgs, Building[] bldgList, int ammountRegulation, int[] qtyOccurredCalls, int t) {
         ArrayList<CandiCall> candiCallList = new ArrayList<>();
         for (Building start : bldgList) {
             for (Building dest : bldgList) {
                 if (start == dest && dest.getBname().equals("区外")) {
                     continue;
                 }
-                int occur = start.occurence(t, dest, mag);
+                int occur = start.generateTraffic(t, dest, mag);
                 //区外発信呼の切断シミュレーション用
                 if (ammountRegulation == 1 && start.isKugai()) {
-                    int limit = start.occurence(t, dest, 1) * 2;
+                    int limit = start.generateTraffic(t, dest, 1) * 2;
                     if (bldgs.getOutLink().getCapacity() + occur > limit) {
                         //現在県外からかかってきている呼 + 今回生じる可能性のある呼数　> 平常時の二倍　ならば、超過分を削除
                         occur = limit - bldgs.getOutLink().getCapacity();
@@ -373,7 +372,7 @@ public class Main implements Runnable {
         }
     }
 
-    private void breakNetwork(int scenario, int[] brokenLink, String[] brokenBuilding, double ammount, int[] outputMethod, BuildingList bldgs, int loop) {
+    private void breakNetwork(int scenario, int[] brokenLink, String[] brokenBuilding, double ammount, int[] outputMethod, Network bldgs, int loop) {
         //地震による影響で壊れるシナリオで使用
         if (scenario == 1 && loop % 4 == 0) {
             //破壊
@@ -389,7 +388,7 @@ public class Main implements Runnable {
         }
         if (brokenBuilding.length > 0) {
             for (String bname : brokenBuilding) {
-                bldgs.findBldg(bname).broken();
+                bldgs.findBldg(bname).makeBroken();
             }
         }
 
@@ -399,14 +398,14 @@ public class Main implements Runnable {
             bldgs.findLink(loop).broken(ammount);
 
             // 区内中継リンクを破壊する
-            // bldgs.exLinkList.get(loop).broken(ammount);
+            // bldgs.exLinkList.get(loop).makeBroken(ammount);
 
             // 区外リンクを破壊する
-            // bldgs.outLink.broken(ammount);
+            // bldgs.outLink.makeBroken(ammount);
         }
     }
 
-    private void initializeLinks(int timeLength, int localLinkCapacity, int kunaiLinkCapacity, int kugaiLinkCapacity, BuildingList bldgs) {
+    private void initializeLinks(int timeLength, int localLinkCapacity, int kunaiLinkCapacity, int kugaiLinkCapacity, Network bldgs) {
         // 区内リンクの回線数設定
         for (Link ln : bldgs.getLinkList()) {
             ln.iniCap(timeLength, localLinkCapacity);

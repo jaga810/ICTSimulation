@@ -1,15 +1,14 @@
 package ictsimulationpackage;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class LargeRing {
-    private BuildingList bldgList;
+    private Network bldgList;
     private Building nerima;
     private Link outLink;
     private SmallRing smallRing;
 
-    LargeRing(BuildingList bldgList) {
+    LargeRing(Network bldgList) {
         this.bldgList = bldgList;
         nerima = bldgList.findBldg("練馬");
         outLink = nerima.getOutLink();
@@ -53,7 +52,7 @@ public class LargeRing {
     }
 
     /**
-     * you can determine the route considering the link capacity and broken buildings
+     * you can determine the route considering the link capacity and makeBroken buildings
      * @param start start building
      * @param dest  destination building
      * @return list of used links, if cant find the route, return null
@@ -171,14 +170,14 @@ public class LargeRing {
         // ルートにnullがあると例外発生
         try {
             // スタートからスタートエリア
-            if (!start.isAreaBldg()) {
+            if (!start.getKunaiRelayBuilding()) {
                 // startが中継ビルの場合のエスケープ
                 link.addAll(inRoute(start, sAreaBldg));
             }
             // スタートエリアからゴールエリア
             link.addAll(inRoute(sAreaBldg, dAreaBldg));
             // ゴールエリアからゴール
-            if (!dest.isAreaBldg()) {
+            if (!dest.getKunaiRelayBuilding()) {
                 link.addAll(inRoute(dAreaBldg, dest));
             }
         } catch (Exception e) {
@@ -200,14 +199,14 @@ public class LargeRing {
         // ルートにnullがあると例外発生
         try {
             // スタートからスタートエリア
-            if (!start.isAreaBldg()) {
+            if (!start.getKunaiRelayBuilding()) {
                 // startが中継ビルの場合のエスケープ
                 link.addAll(inRoute(start, sAreaBldg,isRight));
             }
             // スタートエリアからゴールエリア
             link.addAll(inRoute(sAreaBldg, dAreaBldg,isRight));
             // ゴールエリアからゴール
-            if (!dest.isAreaBldg()) {
+            if (!dest.getKunaiRelayBuilding()) {
                 link.addAll(inRoute(dAreaBldg, dest,isRight));
             }
         } catch (Exception e) {

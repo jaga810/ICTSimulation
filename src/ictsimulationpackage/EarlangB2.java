@@ -1,7 +1,6 @@
 package ictsimulationpackage;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 
@@ -10,10 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 
 /**
@@ -22,7 +18,7 @@ import java.util.HashMap;
 public class EarlangB2 {
     public static void main(String args[]) {
         EarlangB2 e = new EarlangB2();
-        BuildingList bldgs = new BuildingList(102);
+        Network bldgs = new Network(102);
 
 
 
@@ -62,7 +58,7 @@ public class EarlangB2 {
     }
 
 
-    public void download(Building[] list, BuildingList bldgs) {
+    public void download(Building[] list, Network bldgs) {
         String path = "/Users/jaga/Documents/domain_project/data/ネットワーク構成例及びトラヒックの調査/交流トラヒックマトリックス(呼量表示)_140930.xlsx";
         File file = new File(path);
         FileInputStream input = null;
@@ -113,7 +109,7 @@ public class EarlangB2 {
         }
     }
 
-    public Building[] getBldgInOrder(BuildingList bldgs) {
+    public Building[] getBldgInOrder(Network bldgs) {
         String path = "/Users/jaga/Documents/domain_project/data/ネットワーク構成例及びトラヒックの調査/交流トラヒックマトリックス(呼量表示)_140930.xlsx";
         File file = new File(path);
         FileInputStream input = null;
@@ -136,15 +132,15 @@ public class EarlangB2 {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        list[list.length - 2] = bldgs.getOutBldg();
-        list[list.length - 1] = bldgs.getOutBldg();
+        list[list.length - 2] = bldgs.getKugaiRelayBldg();
+        list[list.length - 1] = bldgs.getKugaiRelayBldg();
         return list;
     }
 
 
 
 
-    public HashMap<Double,Double> calc(BuildingList bldgs, int steps) {
+    public HashMap<Double,Double> calc(Network bldgs, int steps) {
         //全てのリンク
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
 
@@ -202,7 +198,7 @@ public class EarlangB2 {
         }
         return clrByMag;
     }
-    public HashMap<Double,BigDecimal> calc2(BuildingList bldgs, int steps) {
+    public HashMap<Double,BigDecimal> calc2(Network bldgs, int steps) {
         //全てのリンク
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
 
@@ -274,7 +270,7 @@ public class EarlangB2 {
         return clrByMag;
     }
 
-    public void iniCap(BuildingList bldgs) {
+    public void iniCap(Network bldgs) {
         int kaisen = 22400;
         int exKaisen = 32600;
         int outKaisen = 66400;

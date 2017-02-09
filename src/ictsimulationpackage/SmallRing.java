@@ -17,7 +17,7 @@ public class SmallRing {
 			isRight = true;
 		}
 		
-		if (start.isAreaBldg() && dest.isAreaBldg()) {
+		if (start.getKunaiRelayBuilding() && dest.getKunaiRelayBuilding()) {
 			//中継ビル同士の探索
 			if (isRight) {
 				linkList = areaRightSearch(start, dest);
@@ -61,7 +61,7 @@ public class SmallRing {
 //			isRight = true;
 //		}
 
-		if (start.isAreaBldg() && dest.isAreaBldg()) {
+		if (start.getKunaiRelayBuilding() && dest.getKunaiRelayBuilding()) {
 			//中継ビル同士の探索
 			if (isRight) {
 				linkList = areaRightSearch(start, dest);
@@ -93,7 +93,7 @@ public class SmallRing {
 
 		//ルートの探索
 		do {
-			if(bldg.canGoRight()){
+			if(bldg.isAvailLinkR()){
 				//破壊リンクが有る場合||破壊ビル||リンクが埋まっている
 				return null;
 			}
@@ -121,7 +121,7 @@ public class SmallRing {
 
 		//ルートの探索
 		do {
-			if(bldg.canGoLeft()){
+			if(bldg.isAvailLinkL()){
 				//破壊リンクがある場合
 				return null;
 			}
@@ -150,12 +150,12 @@ public class SmallRing {
 		}
 
 		do {
-			if(bldg.canGoExRight()){
+			if(bldg.isAvailKunaiLinkR()){
 				//リンクが破壊されている場合
 				return null;
 			}
-			linkList.add(bldg.getExLinkR());
-			bldg = bldg.getExBldgR();
+			linkList.add(bldg.getKunaiLinkR());
+			bldg = bldg.getKuaniBldgR();
 		} while (bldg != dest && bldg != start && bldg != null);
 
 		// destが存在しなかった場合
@@ -177,12 +177,12 @@ public class SmallRing {
 		}
 
 		do {
-			if(bldg.canGoExLeft() ){
+			if(bldg.isAvailKunaiLinkL() ){
 //				リンクが破壊されている
 				return null;
 			}
-			linkList.add(bldg.getExLinkL());
-			bldg = bldg.getExBldgL();
+			linkList.add(bldg.getKunaiLinkL());
+			bldg = bldg.getKunaiBldgL();
 		} while (bldg != dest && bldg != start);
 		
 		// destが存在しなかった場合

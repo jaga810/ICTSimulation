@@ -1,17 +1,14 @@
 package ictsimulationpackage;
 
 import java.io.*;
-import java.util.*;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
 public class KosuDownloader {
 	static int bldgNum = 104;
 
-	static void download(Building kugai, BuildingList bldgList) {
+	static void download(Building kugai, Network bldgList) {
 		Building[] list = sortBldgList(bldgList);
 		try {
 			FileInputStream fi = new FileInputStream(
@@ -79,7 +76,7 @@ public class KosuDownloader {
 	}
 
 	// Excelで読み込む時のindexに従うリストに変更 ->
-	static Building[] sortBldgList(BuildingList bldgList) {
+	static Building[] sortBldgList(Network bldgList) {
 //		System.out.println("sorting Buildings...");
 		String bname;
 		Building bldg;
@@ -101,8 +98,8 @@ public class KosuDownloader {
 			e.printStackTrace();
 		}
 		// 破壊的メソッド化
-//		preList = BuildingList.bldgList;
-//		BuildingList.bldgList = list;
+//		preList = Network.bldgList;
+//		Network.bldgList = list;
 		return list;
 	}
 }

@@ -17,7 +17,7 @@ public class Study {
 //		try {
 //
 //
-//			BuildingList list = new BuildingList(102);
+//			Network list = new Network(102);
 //			Building first = list.bldgList[0];
 //			for (Link ln : list.allLinkList) {
 //				ln.iniCap(1000, 1000);
@@ -112,8 +112,8 @@ public class Study {
 //			}
 //			System.out.println("dest:" + dest.bname + "[" + dest.bid + "]");
 //			System.out.println("-------------ビル破壊エリア横断探索-----------");
-//			// list.bldgList[39].broken();
-//			// list.bldgList[41].broken();
+//			// list.bldgList[39].makeBroken();
+//			// list.bldgList[41].makeBroken();
 //			// list.bldgList[42].linkR = null;
 //			lRing = new LargeRing();
 //			start = list.bldgList[102];
@@ -133,7 +133,7 @@ public class Study {
 //			// KosuDownloader d = new KosuDownloader();
 //			// d.sortBldgList();
 //			// int n = 0;
-//			// for (Building bld : BuildingList.bldgList) {
+//			// for (Building bld : Network.bldgList) {
 //			// System.out.println(n + " : " + bld.bname);
 //			// n++;
 //			// }
@@ -185,18 +185,18 @@ public class Study {
 //			System.out.println(start.bname + " to " + dest.bname + ":" + call.success);
 //
 //			System.out.println("-------------kosu test-----------");
-//			start = BuildingList.bldgList[0];
-//			dest = BuildingList.bldgList[0];
+//			start = Network.bldgList[0];
+//			dest = Network.bldgList[0];
 //			System.out.println("start:" + start.bname + "[" + start.bid + "]");
 //			for (int i = 0; i < 102;i++) {
-//				Building d = BuildingList.bldgList[i];
+//				Building d = Network.bldgList[i];
 //				double b = start.kosuFinder(0, d);
 //				System.out.println(start.bname + " -> " + d.bname + ":" + b);
 //			}
 //			System.out.println("-------------kosuTaken test-----------");
-//			start = BuildingList.bldgList[102];
+//			start = Network.bldgList[102];
 //			for (int i = 0; i < 101;i++) {
-//				Building d = BuildingList.bldgList[i];
+//				Building d = Network.bldgList[i];
 //				double b = start.kosuTakenFinder(23, d);
 //				System.out.println("Taken" + " -> " + d.bname + ":" + b);
 //			}

@@ -3,55 +3,59 @@ package ictsimulationpackage;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Settings {
-    static String address1 = "/Users/jaga/Documents/domain_project/data/NTT-ver2.xlsx";
+    static final String dataDir = "/Users/jaga/Documents/domain_project/data/";
+	static final String sheetName[] = { "練馬区内中継リンク", "荏原区内中継リンク", "墨田区内中継リンク" };
+	static final int localRingNum = 3;
+    static final int relayBldgNum = 102;
 
-	static String[] BldgName() {
-		// 各ビルの名前
-		int sheetNum = 3;
-		String sheetName[] = { "練馬区内中継リンク", "荏原区内中継リンク", "墨田区内中継リンク" };
-		String[] BldgName = new String[102];
+	static BuildingInfo[] BldgInfo() {
+        BuildingInfo info[] = new BuildingInfo[relayBldgNum];
+        XSSFWorkbook book = null;
+
+        //エクセルファイルの読み込み
+        try {
+			FileInputStream fi = new FileInputStream(dataDir + "NTT-ver2.xlsx");
+			book = new XSSFWorkbook(fi);
+			fi.close();
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            System.exit(1);
+        }
+
+        Sheet sheet;
+        int rowNum;
+        int index = 0;
+
+        for (int s = 0; s < localRingNum; s++) {
+            sheet = book.getSheet(sheetName[s]);
+            rowNum = (int) sheet.getRow(1).getCell(10).getNumericCellValue();
+            for (int r = 0; r < rowNum; r++) {
+                Row row = sheet.getRow(r + 1);
+                String bname = row.getCell(1).toString();
+                int bid =(int)row.getCell(0).getNumericCellValue();
+                int kunaiRelayBldgId = (int) row.getCell(6).getNumericCellValue();
+                info[index++] = new BuildingInfo(bid, bname, kunaiRelayBldgId);
+            }
+        }
+
+        return info;
+    }
+
+	static double[] getScale(Network bldgList) {
+		double[] scale = new double[relayBldgNum];
 		try {
-			FileInputStream fi = new FileInputStream(address1);
+			FileInputStream fi = new FileInputStream(dataDir + "scale_data.xls");
 			XSSFWorkbook book = new XSSFWorkbook(fi);
 			fi.close();
 
-			Sheet sheet;
-			int rowNum;
-			int index = 0;
-
-			for (int i = 0; i < sheetNum; i++) {
-				sheet = book.getSheet(sheetName[i]);
-				rowNum = (int) sheet.getRow(1).getCell(10).getNumericCellValue();
-				for (int k = 0; k < rowNum; k++) {
-					Row row = sheet.getRow(k + 1);
-					BldgName[index] = row.getCell(1).toString();
-					index++;
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace(System.err);
-			System.exit(1);
-		}
-		return BldgName;
-	}
-
-	static double[] getScale(BuildingList bldgList) {
-		//各IDに紐付いた配列にscaleを読み込む
-		double[] scale = new double[102];
-		try {
-			FileInputStream fi = new FileInputStream("/Users/jaga/Documents/domain_project/data/scale_data.xls");
-			XSSFWorkbook book = new XSSFWorkbook(fi);
-			fi.close();
 			// データの数の読み込み
-			Sheet sheet = null;
+			Sheet sheet;
 			Row row;
 
 			for (int s = 2; s <= 4; s++) {
@@ -74,4 +78,5 @@ public class Settings {
 		}
 		return scale;
 	}
+
 }

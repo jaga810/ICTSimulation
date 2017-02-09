@@ -1,197 +1,191 @@
 package ictsimulationpackage;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
+/**
+ * 中継ビル
+ * スレッド毎にBuildingListオブジェクトをもち、各BuildingListオブジェクトが
+ * 103のBuildingオブジェクトを持つ
+ */
 public class Building {
-    //変数
+
     private int bid;
     private String bname;
-    private Building areaBldg;
+    private Building kunaiRelayBuilding;//中継ビル
     private boolean broken = false;
 
+    //呼数の分布 kosu.get[h](Building) = Buildingへのh時間帯での呼数分布(区外ビルの場合は多摩地区からの呼量)
+    //          kosutTaken.get[h](Building) = 他県へのh時間帯での呼数分布
     private HashMap<Building, Double> kosu[] = new HashMap[24];
     private HashMap<Building, Double> kosuTaken[] = new HashMap[24];
 
-    //bldgListオブジェクト（親オブジェクト
-    private BuildingList bldgList;
-
-    //左右方向のリンク
+    //ローカルリング
     private Link linkR;
     private Link linkL;
-
-    //左右方向のビル;
     private Building bldgR;
     private Building bldgL;
-    private Building exBldgR;
-    private Building exBldgL;
 
-    //区内中継リンク
-    private Link exLinkR;
-    private Link exLinkL;
+    //23区内中継リング
+    private Building kunaiBldgR;
+    private Building kunaiBldgL;
+    private Link kunaiLinkR;
+    private Link kunaiLinkL;
 
-    //区外中継リンク
-    private Link outLink;
+    //区外中継
+    private Link kugaiLink;
 
-    //経度、緯度
+    //経度、緯度 => 震度分布作成時に使用
     private double latitude;
     private double longitude;
 
     Building() {
-        //start,last用
+        //BuildingListクラスで空のBuildingオブジェクトを使うため
     }
 
     Building(String bname, int bid) {
         //区外ビル作成用
         this.bname = bname;
         this.bid = bid;
-        this.areaBldg = this;
+        this.kunaiRelayBuilding = this;
 
-        for (int i = 0; i < kosu.length; i++) {
-            kosu[i] = new HashMap();
-        }
-        for (int i = 0; i < kosuTaken.length; i++) {
-            kosuTaken[i] = new HashMap();
-        }
-    }
-
-    Building(int id, BuildingList bldgList, String bldgName[]) {
-        bid = id;
-        bname = bldgName[bid];
-        this.bldgList = bldgList;
-
-        for (int i = 0; i < kosu.length; i++) {
-            kosu[i] = new HashMap();
-        }
-        for (int i = 0; i < kosuTaken.length; i++) {
-            kosuTaken[i] = new HashMap();
-        }
+        Utility.initHashMap(kosu);
+        Utility.initHashMap(kosuTaken);
     }
 
 
+    Building(int bid,  String bname) {
+        this.bid = bid;
+        this.bname = bname;
 
-
-
-    void setArea(Building bldg) {
-        areaBldg = bldg;
+        Utility.initHashMap(kosu);
+        Utility.initHashMap(kosuTaken);
     }
 
-    void setLink(Link r, Link l) {
-        linkR = r;
-        linkL = l;
+    Building(BuildingInfo info) {
+        this.bid = info.getBid();
+        this.bname = info.getBname();
+
+        Utility.initHashMap(kosu);
+        Utility.initHashMap(kosuTaken);
     }
 
-    void setExLink(Link r, Link l) {
-        linkR = r;
-        linkL = l;
-    }
+    //時間、目的地、普段と比べたトラフィックの倍率を引数として発生呼数を返す
 
-    void setExBldg(Building r, Building l) {
-        exBldgR = r;
-        exBldgL = l;
-    }
+    /**
+     * このオブジェクトのビルから、destビルへのtime時におけるトラフィックを取得
+     * 区外->区外へのトラフィックは返らないので呼び出さない
+     *
+     * @param time シミュレーション中の時間t (min)
+     * @param dest 呼の目的地
+     * @param mag  需要量の倍率
+     * @return トラフィック（生起する呼の数）
+     */
+    public int generateTraffic(int time, Building dest, int mag) {
+        int traffic;
+        int hour = time / 60 % 24;
+        double kosu = this.kosu[hour].get(dest);
+        if (isKugai()) {
+            double kosuTaken = this.kosu[hour].get(dest);
+            //多摩地区発信のトラフィック
+            traffic = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
 
-    //ひとつ前のbuildingを引数として、次のビルを返すメソッド
-    Building next(Building prev) {
-        Building bldg;
-        if (prev == bldgR) {
-            bldg = bldgL;
-        } else if (prev == bldgL) {
-            bldg = bldgR;
+            //県外発信のトラフィック
+            traffic += OccurrenceOfCalls.Occurrence(kosuTaken * mag / 60);
+
         } else {
-            bldg = null;
+            traffic = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
         }
-        return bldg;
+        return traffic;
     }
 
-    //ビルの破壊
-    void broken() {
-        broken = true;
-    }
-
-    void setKosu(int t, Building bldg, double kosu) {
+    /**
+     * このオブジェクトのビルからdestビルへのhour時間帯における呼数をセット
+     *
+     * @param hour 時間帯
+     * @param dest 目的地のビル
+     * @param kosu 呼数
+     */
+    public void setKosu(int hour, Building dest, double kosu) {
         try {
-            if (this.kosu[t].containsKey(bldg)) {
-                double val = this.kosu[t].get(bldg);
+            if (this.kosu[hour].containsKey(dest)) {
+                double val = this.kosu[hour].get(dest);
                 val += kosu;
-                this.kosu[t].put(bldg, val);
+                this.kosu[hour].put(dest, val);
             } else {
-                this.kosu[t].put(bldg, kosu);
+                this.kosu[hour].put(dest, kosu);
             }
         } catch (NullPointerException e) {
-            System.out.println("start:" + bname + " t:" + t );
+            System.out.println("start:" + bname + " t:" + hour);
             e.printStackTrace();
         }
 
     }
 
-    //他県への個数は別に管理。多摩地区はkosu[t][102]
-    void setKosuTaken(int t, Building bldg, double kosu) {
-        if (this.kosuTaken[t].containsKey(bldg)) {
-            double val = this.kosuTaken[t].get(bldg);
+    /**
+     * 他県への個数は別に管理する。多摩地区はkosu.get("区外")にセットする
+     *
+     * @param hour
+     * @param bldg
+     * @param kosu
+     */
+    void setKosuTaken(int hour, Building bldg, double kosu) {
+        if (this.kosuTaken[hour].containsKey(bldg)) {
+            double val = this.kosuTaken[hour].get(bldg);
             val += kosu;
-            this.kosuTaken[t].put(bldg, val);
+            this.kosuTaken[hour].put(bldg, val);
         } else {
-            this.kosuTaken[t].put(bldg, kosu);
-//			System.out.println(bid +":" + this.kosuTaken[t].get(bldg));
+            this.kosuTaken[hour].put(bldg, kosu);
         }
     }
 
-    double[] addArray(double[] array1, double[] array2) {
-        double val[] = new double[array1.length];
-        if (array1.length != array2.length) {
-            return null;
-        }
-        for (int i = 0; i < array1.length; i++) {
-            val[i] = array1[i] + array2[i];
-        }
-        return val;
+    /**
+     * bldgをthisビルの右側に追加する
+     * bldgListでモデルを構築する際に使用
+     * @param bldg
+     */
+    public void insertBldgR(Building bldg) {
+        //this -> (bldg) -> bldgR
+        //bldgの右をbldgRに, 左をthisに
+        bldg.setBldgR(bldgR);
+        bldg.setBldgL(this);
+        //bldgRの左をbldgに
+        bldgR.setBldgL(bldg);
+        //thisの右をbldgに
+        setBldgR(bldg);
     }
 
-    double kosuFinder(int t, Building dest) {
-        double d = kosu[t].get(dest);
-        return d;
+    public void setLinkFor2Bldgs(Link ln) {
+        setLinkR(ln);
+        bldgR.setLinkL(ln);
     }
 
-    double kosuTakenFinder(int t, Building dest) {
-        if (dest.bname.equals("区外")) {
-            System.out.println("kugai to kugai is incapable");
-            return 0;
-        }
-        double d = kosuTaken[t].get(dest);
-        return d;
+    public void makeBroken() {
+        broken = true;
     }
 
-    //時間、目的地、普段と比べたトラフィックの倍率を引数として発生呼数を返す
-    int occurence(int time, Building dest, int mag) {
-        int val;
-        int hour = time / 60 % 24;
-        double kosu = this.kosu[hour].get(dest);
-        if (isKugai()) {
-            double kosuTaken = kosuTakenFinder(hour, dest);
-            //多摩地区発信のトラフィック
-            if (kosu * mag < 2815.00707107201 * 2) {
-                val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
-            } else {
-                val = OccurrenceOfCalls.Occurrence(2815.00707107201 * 2 / 60);
-            }
-
-            //県外発信のトラフィック
-            if (kosuTaken * mag < 5908.49092777896 * 2) {
-                val += OccurrenceOfCalls.Occurrence(kosu * mag / 60);
-            } else {
-                val += OccurrenceOfCalls.Occurrence(5908.49092777896 * 2 / 60);
-            }
-        } else {
-            val = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
-        }
-        return val;
+    public void repair() {
+        broken = false;
     }
 
-    void setGisData(double la, double lon) {
-        latitude = la;
-        longitude = lon;
+    /**getterとsetter*/
+
+    public void setKunaiRelayBuilding(Building bldg) {
+        kunaiRelayBuilding = bldg;
     }
+
+    public void setKunaiBldgs(Building r, Building l) {
+        kunaiBldgR = r;
+        kunaiBldgL = l;
+    }
+
+    public void setKunaiBldgR(Building bldg) {
+        kunaiBldgR = bldg;
+    }
+
+    public void setKunaiBldgL(Building bldg) {
+        kunaiBldgL  = bldg;
+    }
+
 
     public Building getBldgR() {
         return bldgR;
@@ -209,24 +203,8 @@ public class Building {
         bldgL = bldg;
     }
 
-    public void insertBldgR(Building bldg) {
-        //this -> (bldg) -> bldgR
-        //bldgの右をbldgRに, 左をthisに
-        bldg.setBldgR(bldgR);
-        bldg.setBldgL(this);
-        //bldgRの左をbldgに
-        bldgR.setBldgL(bldg);
-        //bldgの右をbldgに
-        setBldgR(bldg);
-    }
-
     public int getBid() {
         return bid;
-    }
-
-    public void setLinks(Link ln) {
-        setLinkR(ln);
-        bldgR.setLinkL(ln);
     }
 
     public void setLinkR(Link ln) {
@@ -245,37 +223,44 @@ public class Building {
         return linkL;
     }
 
-    public Building getExBldgR() {
-        return exBldgR;
+
+    public Link getKunaiLinkR() {
+        return kunaiLinkR;
     }
 
-    public Building getExBldgL() {
-        return exBldgL;
+    public Link getKunaiLinkL() {
+        return kunaiLinkL;
     }
 
-    private void setExLinkR(Link ln ) {
-        exLinkR = ln;
+
+    public Building getKuaniBldgR() {
+        return kunaiBldgR;
     }
 
-    private void setExLinkL(Link ln) {
-        exLinkL = ln;
+    public Building getKunaiBldgL() {
+        return kunaiBldgL;
     }
 
-    public void setExLinks(Link ln) {
-        setExLinkR(ln);
-        exBldgR.setExLinkL(ln);
+    private void setKunaiLinkR(Link ln) {
+        kunaiLinkR = ln;
     }
+
+    private void setKunaiLinkL(Link ln) {
+        kunaiLinkL = ln;
+    }
+
+    public void setKunaiLinks(Link ln) {
+        setKunaiLinkR(ln);
+        kunaiBldgR.setKunaiLinkL(ln);
+    }
+
 
     public String getBname() {
         return bname;
     }
 
-    public void setOutLink(Link ln) {
-        outLink = ln;
-    }
-
-    public void repair() {
-        broken = false;
+    public void setKugaiLink(Link ln) {
+        kugaiLink = ln;
     }
 
     public boolean isBroken() {
@@ -283,50 +268,51 @@ public class Building {
     }
 
     public Building getAreaBldg() {
-        return areaBldg;
+        return kunaiRelayBuilding;
     }
 
+
+    /** ビルの状態に関するbool値 */
     public boolean isKugai() {
         return bname.equals("区外");
     }
 
     public Link getOutLink() {
-        return outLink;
+        return kugaiLink;
     }
 
     public boolean isSameArea(Building bldg) {
-        return this.areaBldg == bldg.areaBldg;
+        return this.kunaiRelayBuilding == bldg.kunaiRelayBuilding;
     }
 
-    public boolean isAreaBldg() {
-        return areaBldg == this;
+    public boolean getKunaiRelayBuilding() {
+        return kunaiRelayBuilding == this;
     }
 
-    public boolean canGoRight() {
-        return linkR.isBroken()|| isBroken() || linkR.maxCap();
+    public boolean isAvailLinkR() {
+        return linkR.isBroken() || isBroken() || linkR.maxCap();
     }
 
-    public boolean canGoLeft() {
-        return linkL.isBroken()|| isBroken() || linkL.maxCap();
+    public boolean isAvailLinkL() {
+        return linkL.isBroken() || isBroken() || linkL.maxCap();
     }
 
-    public boolean canGoExRight() {
-        return exLinkR.isBroken()|| isBroken() || exLinkR.maxCap();
+    public boolean isAvailKunaiLinkR() {
+        return kunaiLinkR.isBroken() || isBroken() || kunaiLinkR.maxCap();
     }
 
-    public boolean canGoExLeft() {
-        return exLinkL.isBroken()|| isBroken() || exLinkL.maxCap();
+    public boolean isAvailKunaiLinkL() {
+        return kunaiLinkL.isBroken() || isBroken() || kunaiLinkL.maxCap();
     }
 
-    public Link getExLinkR() {
-        return exLinkR;
-    }
+    /**etc*/
 
-    public Link getExLinkL() {
-        return exLinkL;
-    }
-
-    public HashMap<Building,Double> getKosu(int t) {
+    public HashMap<Building, Double> getKosu(int t) {
         return kosu[t];
+    }
+
+    void setGisData(double la, double lon) {
+        latitude = la;
+        longitude = lon;
     }
 }
