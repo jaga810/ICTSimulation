@@ -11,4 +11,19 @@ public class Utility {
             map[i] = new HashMap();
         }
     }
+
+    /**
+     * 1/2の確率でtrueを返す
+     * @return
+     */
+    public static boolean halfProb() {
+        return Math.random() > 0.5;
+    }
+
+    /**
+     * とりあえずエラーが出したい時
+     */
+    public static void error() {
+        System.out.println(1/0);
+    }
 }

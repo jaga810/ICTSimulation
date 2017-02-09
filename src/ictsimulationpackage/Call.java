@@ -59,9 +59,9 @@ public class Call {
         if (success && EndTime < timeLength) {
             group.addToLimitList(EndTime, this);
             // 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
-            if (start.getAreaBldg() != null && dest.getAreaBldg() != null && start != dest &&
+            if (start.getKunaiRelayBldg() != null && dest.getKunaiRelayBldg() != null && start != dest &&
                     time < 14 * 60 && time > 12 * 60) {
-                if ((start.getAreaBldg() == dest.getAreaBldg())) {
+                if ((start.getKunaiRelayBldg() == dest.getKunaiRelayBldg())) {
                     for (Link ln : linkList) {
                         if (ln.getLinkId() < 102) {
                             group.addAreaKosu(ln.getLinkId());

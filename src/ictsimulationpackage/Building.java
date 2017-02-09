@@ -233,7 +233,7 @@ public class Building {
     }
 
 
-    public Building getKuaniBldgR() {
+    public Building getKunaiBldgR() {
         return kunaiBldgR;
     }
 
@@ -267,7 +267,11 @@ public class Building {
         return broken;
     }
 
-    public Building getAreaBldg() {
+    public boolean isAvail() {
+        return !broken;
+    }
+
+    public Building getKunaiRelayBldg() {
         return kunaiRelayBuilding;
     }
 
@@ -281,28 +285,28 @@ public class Building {
         return kugaiLink;
     }
 
-    public boolean isSameArea(Building bldg) {
+    public boolean isOnSameLocalRing(Building bldg) {
         return this.kunaiRelayBuilding == bldg.kunaiRelayBuilding;
     }
 
-    public boolean getKunaiRelayBuilding() {
+    public boolean isKunaiRelayBuilding() {
         return kunaiRelayBuilding == this;
     }
 
     public boolean isAvailLinkR() {
-        return linkR.isBroken() || isBroken() || linkR.maxCap();
+        return linkR.isBroken() || isBroken() || linkR.isMaxCap();
     }
 
     public boolean isAvailLinkL() {
-        return linkL.isBroken() || isBroken() || linkL.maxCap();
+        return linkL.isBroken() || isBroken() || linkL.isMaxCap();
     }
 
     public boolean isAvailKunaiLinkR() {
-        return kunaiLinkR.isBroken() || isBroken() || kunaiLinkR.maxCap();
+        return kunaiLinkR.isBroken() || isBroken() || kunaiLinkR.isMaxCap();
     }
 
     public boolean isAvailKunaiLinkL() {
-        return kunaiLinkL.isBroken() || isBroken() || kunaiLinkL.maxCap();
+        return kunaiLinkL.isBroken() || isBroken() || kunaiLinkL.isMaxCap();
     }
 
     /**etc*/

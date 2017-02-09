@@ -19,7 +19,7 @@ public class Network {
 	private double[] scale;
 
 	//various building lists
-	private Building[] bldgList = new Building[bldgNum + 1];
+	private Building[] bldgList = new Building[bldgNum + 1];//末尾は仮想的な区外ビル
 	private Building[] kunaiRelayBldgList = new Building[bldgNum];
 	private Building[] kunaiBldgList = new Building[bldgNum];
 	private Building   kugaiRelayBldg;
@@ -257,6 +257,10 @@ public class Network {
 
     public void getScale() {
         scale = Settings.getScale(this);
+    }
+
+    public Building getKugaiBldg() {
+        return bldgList[bldgNum];
     }
 
 	/** etc */

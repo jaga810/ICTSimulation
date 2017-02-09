@@ -32,7 +32,7 @@ public class Link {
 	public Link(Building bldg, int id) {
 		//区内中継リンク
 		left = bldg;
-		right = bldg.getKuaniBldgR();
+		right = bldg.getKunaiBldgR();
 		this.linkId = id;
 	}
 
@@ -70,11 +70,11 @@ public class Link {
      * もし使用回線数が設計回線数をうわ待っていた場合はエラー
      * @return 回線数に余裕があればfalse,なければtrue
      */
-	public boolean maxCap() {
+	public boolean isMaxCap() {
 		if (occupiedCap == capacity) {
 			return true;
 		} else if (occupiedCap > capacity) {
-            System.out.println("Link class maxCap Error");
+            System.out.println("Link class isMaxCap Error");
             System.out.println(1/0);
         }
 		return false;
@@ -152,6 +152,13 @@ public class Link {
         return broken;
     }
 
+    /**
+     * リンクが使用可能かどうか返す
+     * @return
+     */
+    public boolean isAvail() {
+        return isBroken() || isMaxCap();
+    }
 
 	//引数の時間帯のトラフィックを返す
 	public double getTrrafic(int h) {

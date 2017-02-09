@@ -4,192 +4,269 @@ import java.util.*;
 
 public class SmallRing {
 
-	/**
-	 * this method is used for the route exploring in the same ring
-	 * or in the areaLinks.
-	 */
-	ArrayList<Link> route(Building start, Building dest) {
-		ArrayList<Link> linkList;
+    /**
+     * this method is used for the localRingSearch exploring in the same ring
+     * or in the areaLinks.
+     * startかdestが壊れている場合はここでnull出してルート探索の失敗を保証
+     * start == destは受け付けない
+     */
+    public ArrayList<Link> localRingSearch(Building start, Building dest) {
+        if (start == dest) {
+            System.out.println("smallring route error start == dest");
+            Utility.error();
+        }
+        ArrayList<Link> usedLinkList;
 
-		//探索を右回りで行うかどうかはランダムにキマる
-		boolean isRight = false;
-		if(Math.random() > 0.5){
-			isRight = true;
-		}
-		
-		if (start.getKunaiRelayBuilding() && dest.getKunaiRelayBuilding()) {
-			//中継ビル同士の探索
-			if (isRight) {
-				linkList = areaRightSearch(start, dest);
-			} else {
-				linkList = areaLeftSearch(start, dest);
-			}
+        //探索を右回りで行うかどうかはランダム
+        boolean isRight = Utility.halfProb();
 
-			//ルートが見つからなかったら逆回りで
-			if (linkList.isEmpty()) {
-				if (isRight) {
-					linkList = areaRightSearch(start, dest);
-				}else{
-					linkList = areaLeftSearch(start, dest);
-				}
-			}
-		}else{
-			//同じ地区内ビル同士の探索
-			if (isRight) {
-				linkList = rightSearch(start, dest);
-			} else {
-				linkList = leftSearch(start, dest);
-			}
-			//ルートが見つからなかったら逆回りで
-			if (linkList == null) {
-				if (!isRight) {
-					linkList = rightSearch(start, dest);
-				} else {
-					linkList = leftSearch(start, dest);
-				}
-			}
-		}
-		return linkList;
-	}
+        //同じ地区内ビル同士の探索
+        if (isRight) {
+            usedLinkList = localRingLightSearch(start, dest);
+        } else {
+            usedLinkList = localRingLeftSearch(start, dest);
+        }
 
-	ArrayList<Link> route(Building start, Building dest,boolean isRight) {
-		ArrayList<Link> linkList;
+        //ルートが見つかったらおわり
+        if (usedLinkList != null) {
+            return usedLinkList;
+        }
 
-		//探索を右回りで行うかどうかはランダムにキマる
+        //ルートが見つからなければ逆回りで探索
+        if (!isRight) {
+            usedLinkList = localRingLightSearch(start, dest);
+        } else {
+            usedLinkList = localRingLeftSearch(start, dest);
+        }
+
+        return usedLinkList;
+    }
+
+    /**
+     * 区内中継リング上のルートを探索する
+     * start == destは受け付けない
+     * @param start
+     * @param dest
+     * @return
+     */
+    public ArrayList<Link> kunaiRelayRingSearch(Building start, Building dest) {
+        if (start == dest) {
+            System.out.println("smallring route error start == dest");
+            Utility.error();
+        }
+
+        ArrayList usedLinkList;
+
+        //探索を右回りで行うかどうかはランダム
+        boolean isRight = Utility.halfProb();
+
+        //中継ビル同士の探索
+        if (isRight) {
+            usedLinkList = kunaiRelayRingRightSearch(start, dest);
+        } else {
+            usedLinkList = kunaiRelayRingLeftSearch(start, dest);
+        }
+
+        //ルートが見つかったら終わり
+        if (usedLinkList != null) {
+            return usedLinkList;
+        }
+
+        //見つからなければ逆回り
+        //ALERT:isRightに!がついてなかった気がする
+        if (!isRight) {
+            usedLinkList = kunaiRelayRingRightSearch(start, dest);
+        } else {
+            usedLinkList = kunaiRelayRingLeftSearch(start, dest);
+        }
+        return usedLinkList;
+    }
+
+
+    /**
+     * ローカルリング上を右回りに探索
+     * start と destのリングが同じである必要あり
+     * start == dest はlocalRingRouteで潰す
+     * @param start
+     * @param dest
+     * @return
+     */
+    private ArrayList<Link> localRingLightSearch(Building start, Building dest) {
+        //同じローカルリング上になければエラー
+        if (!start.isOnSameLocalRing(dest)) {
+            System.out.println("SmallRing local ring light search error");
+            Utility.error();
+        }
+        //startかdestinationのどちらかが破壊
+        if (!start.isAvail() || !dest.isAvail()) {
+            return null;
+        }
+
+        ArrayList<Link> usedLinkList = new ArrayList();
+        ArrayList<Building> usedBldgList = new ArrayList();
+
+        //ルートの探索
+        {
+            Building bldg = start;
+            while (bldg != dest) {
+                usedBldgList.add(bldg);
+                usedLinkList.add(bldg.getLinkR());
+
+                bldg = bldg.getBldgR();
+            }
+        }
+
+        //ルートが使用可能か確認
+        if (checkRouteAvail(usedLinkList, usedBldgList)) return null;
+
+        return usedLinkList;
+    }
+
+    private ArrayList<Link> localRingLeftSearch(Building start, Building dest) {
+        //同じローカルリング上になければエラー
+        if (!start.isOnSameLocalRing(dest)) {
+            System.out.println("SmallRing local ring light search error");
+            Utility.error();
+        }
+        //startかdestinationのどちらかが破壊
+        if (!start.isAvail() || !dest.isAvail()) {
+            return null;
+        }
+
+        ArrayList<Link> usedLinkList = new ArrayList();
+        ArrayList<Building> usedBldgList = new ArrayList();
+
+        //ルートの探索
+        {
+            Building bldg = start;
+            while (bldg != dest) {
+                usedBldgList.add(bldg);
+                usedLinkList.add(bldg.getLinkL());
+
+                bldg = bldg.getBldgL();
+            }
+        }
+
+        //ルートが使用可能か確認
+        if (checkRouteAvail(usedLinkList, usedBldgList)) return null;
+
+        return usedLinkList;
+    }
+
+    /**
+     * ルーティングの際に通った要素の内、使用不可能なものがあればtrueを返す
+     * @param usedLinkList
+     * @param usedBldgList
+     * @return
+     */
+    private boolean checkRouteAvail(ArrayList<Link> usedLinkList, ArrayList<Building> usedBldgList) {
+        for(int i = 0; i < usedLinkList.size();i++) {
+            Building bldg = usedBldgList.get(i);
+            Link ln = usedLinkList.get(i);
+            if(!bldg.isAvail() || !ln.isAvail()){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 中継ビル右回り探索
+    private ArrayList<Link> kunaiRelayRingRightSearch(Building start, Building dest) {
+        //同じローカルリング上になければエラー
+        if (!start.isOnSameLocalRing(dest)) {
+            System.out.println("SmallRing local ring light search error");
+            Utility.error();
+        }
+        //startかdestinationのどちらかが破壊
+        if (!start.isAvail() || !dest.isAvail()) {
+            return null;
+        }
+
+        ArrayList<Link> usedLinkList = new ArrayList();
+        ArrayList<Building> usedBldgList = new ArrayList();
+
+        //ルートの探索
+        {
+            Building bldg = start;
+            while (bldg != dest) {
+                usedBldgList.add(bldg);
+                usedLinkList.add(bldg.getKunaiLinkR());
+
+                bldg = bldg.getKunaiBldgR();
+            }
+        }
+
+        //ルートが使用可能か確認
+        if (checkRouteAvail(usedLinkList, usedBldgList)) return null;
+
+        return usedLinkList;
+    }
+
+    // 中継ビル左回り探索
+    private ArrayList<Link> kunaiRelayRingLeftSearch(Building start, Building dest) {
+        //同じローカルリング上になければエラー
+        if (!start.isOnSameLocalRing(dest)) {
+            System.out.println("SmallRing local ring light search error");
+            Utility.error();
+        }
+        //startかdestinationのどちらかが破壊
+        if (!start.isAvail() || !dest.isAvail()) {
+            return null;
+        }
+
+        ArrayList<Link> usedLinkList = new ArrayList();
+        ArrayList<Building> usedBldgList = new ArrayList();
+
+        //ルートの探索
+        {
+            Building bldg = start;
+            while (bldg != dest) {
+                usedBldgList.add(bldg);
+                usedLinkList.add(bldg.getKunaiLinkL());
+
+                bldg = bldg.getKunaiBldgL();
+            }
+        }
+
+        //ルートが使用可能か確認
+        if (checkRouteAvail(usedLinkList, usedBldgList)) return null;
+
+        return usedLinkList;
+    }
+
+
+    /**
+     * アーランbで使う
+     * 以下リファクタリングしてない
+     * @param start
+     * @param dest
+     * @param isRight
+     * @return
+     */
+    ArrayList<Link> localRingSearch(Building start, Building dest, boolean isRight) {
+        ArrayList<Link> linkList;
+
+        //探索を右回りで行うかどうかはランダムにキマる
 //		boolean isRight = false;
 //		if(Math.random() > 0.5){
 //			isRight = true;
 //		}
 
-		if (start.getKunaiRelayBuilding() && dest.getKunaiRelayBuilding()) {
-			//中継ビル同士の探索
-			if (isRight) {
-				linkList = areaRightSearch(start, dest);
-			} else {
-				linkList = areaLeftSearch(start, dest);
-			}
-		}else{
-			//同じ地区内ビル同士の探索
-			if (isRight) {
-				linkList = rightSearch(start, dest);
-			} else {
-				linkList = leftSearch(start, dest);
-			}
-		}
-		return linkList;
-	}
-
-	// 右回り探索（同じエリア内）
-	ArrayList<Link> rightSearch(Building start, Building dest) {
-		// test:右回り優先探索でやる
-		ArrayList<Link> linkList = new ArrayList<Link>();
-		Building bldg;
-		bldg = start;
-
-		//start かdestinationのどちらかが破壊されていたら無理
-		if (start.isBroken() || dest.isBroken()) {
-			return null;
-		}
-
-		//ルートの探索
-		do {
-			if(bldg.isAvailLinkR()){
-				//破壊リンクが有る場合||破壊ビル||リンクが埋まっている
-				return null;
-			}
-			linkList.add(bldg.getLinkR());
-			bldg = bldg.getBldgR();
-		} while (bldg != dest && bldg != start && bldg != null);
-		
-		// destが存在しなかった場合
-		if (bldg == start) {
-			linkList = null;
-		}
-		return linkList;
-	}
-
-	// 左回り探索
-	ArrayList<Link> leftSearch(Building start, Building dest) {
-		ArrayList<Link> linkList = new ArrayList<Link>();
-		Building bldg;
-		bldg = start;
-
-		//start かdestinationのどちらかが破壊されていたら無理
-		if (start.isBroken() || dest.isBroken()) {
-			return null;
-		}
-
-		//ルートの探索
-		do {
-			if(bldg.isAvailLinkL()){
-				//破壊リンクがある場合
-				return null;
-			}
-			linkList.add(bldg.getLinkL());
-			bldg = bldg.getBldgL();
-		} while (bldg != dest && bldg != start);
-
-		// destが存在しなかった場合
-		if (bldg == start) {
-			linkList = null;
-		}
-		return linkList;
-	}
-	
-	// 中継ビル右回り探索
-	static ArrayList<Link> areaRightSearch(Building start, Building dest) {
-		// test:右回り優先探索でやる
-		ArrayList<Link> linkList = new ArrayList<Link>();
-		Building bldg;
-		bldg = start;
-		boolean broken = false;
-
-		//start かdestinationのどちらかが破壊されていたら無理
-		if (start.isBroken() || dest.isBroken()) {
-			return null;
-		}
-
-		do {
-			if(bldg.isAvailKunaiLinkR()){
-				//リンクが破壊されている場合
-				return null;
-			}
-			linkList.add(bldg.getKunaiLinkR());
-			bldg = bldg.getKuaniBldgR();
-		} while (bldg != dest && bldg != start && bldg != null);
-
-		// destが存在しなかった場合
-		if (bldg == start) {
-			linkList = null;
-		}
-		return linkList;
-	}
-
-	// 中継ビル左回り探索
-	static ArrayList<Link> areaLeftSearch(Building start, Building dest) {
-		ArrayList<Link> linkList = new ArrayList<Link>();
-		Building bldg;
-		bldg = start;
-
-		//start かdestinationのどちらかが破壊されていたら無理
-		if (start.isBroken() || dest.isBroken()) {
-			return null;
-		}
-
-		do {
-			if(bldg.isAvailKunaiLinkL() ){
-//				リンクが破壊されている
-				return null;
-			}
-			linkList.add(bldg.getKunaiLinkL());
-			bldg = bldg.getKunaiBldgL();
-		} while (bldg != dest && bldg != start);
-		
-		// destが存在しなかった場合
-		if (bldg == start) {
-			linkList = null;
-		}
-		return linkList;
-	}
-	
+        if (start.isKunaiRelayBuilding() && dest.isKunaiRelayBuilding()) {
+            //中継ビル同士の探索
+            if (isRight) {
+                linkList = kunaiRelayRingRightSearch(start, dest);
+            } else {
+                linkList = kunaiRelayRingLeftSearch(start, dest);
+            }
+        } else {
+            //同じ地区内ビル同士の探索
+            if (isRight) {
+                linkList = localRingLightSearch(start, dest);
+            } else {
+                linkList = localRingLeftSearch(start, dest);
+            }
+        }
+        return linkList;
+    }
 }
