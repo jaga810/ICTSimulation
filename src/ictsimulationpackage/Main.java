@@ -14,8 +14,8 @@ public class Main implements Runnable {
         /**各種設定変数**/
         final int bldgNum = 102; //使用する中継ビルの個数（県外除く）
         final int minBrokenBldgLimit = 1;
-        final int maxBrokenBldgLimit = 1;
-        final int maxThreadsNum = 1;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
+        final int maxBrokenBldgLimit = 10;
+        final int maxThreadsNum = 3;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
 
         /**出力関連**/
         File dateDir = Output.getDateDir();
@@ -48,7 +48,7 @@ public class Main implements Runnable {
         /****各種設定****/
 
         // ループの回数
-        final int loopNum = 4 * 20;
+        final int loopNum = 4 * 1;
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
@@ -143,7 +143,7 @@ public class Main implements Runnable {
 
             /***initialization***/
             // Callの持続時間の方針: 0:制限なし 1:１分まで
-            callList.reset(timeRegulation);
+            callList.init(timeRegulation);
 
             // リンクとビルのbroken状態を回復する(シナリオでないときと、シナリオでかつループが4の倍数のとき)
             if (scenario == 0 || loop % 4 == 0) {
@@ -201,11 +201,11 @@ public class Main implements Runnable {
                 }
 
                 //呼の生起
-                ArrayList<CandiCall> candiCallList = occurrenceOfCalls(mag, bldgs, bldgList, ammountRegulation, qtyOccurredCalls, t);
-                Collections.shuffle(candiCallList);
+                ArrayList<Call> generatedCallList = occurrenceOfCalls(mag, bldgs, bldgList, ammountRegulation, qtyOccurredCalls, t, callList);
+                Collections.shuffle(generatedCallList);
 
                 //ルーティング及び接続可能性評価
-                latestTimeOfCalls = routing(callList, qtyExistingCalls, qtyLostCalls, existingCallList, t, latestTimeOfCalls, candiCallList);
+                latestTimeOfCalls = routing(qtyExistingCalls, qtyLostCalls, existingCallList, t, latestTimeOfCalls, generatedCallList);
                 timeOfLastCall.add(latestTimeOfCalls);
 
                 //時刻tに終了する呼の消去
@@ -219,12 +219,10 @@ public class Main implements Runnable {
                 avgHoldTime[t] = Double.valueOf(callList.getSumHoldTime(t)) / Double.valueOf(qtyOccurredCalls[t]);
             }
 
-
-            //全て記録
-            worstcallLossRate[loop] = Output.maxInArray(callLossRate);
-            avecallLossRate[loop] = Output.aveInArray(callLossRate);
-            sumcallLossRate[loop] = Output.sumInArray(callLossRate);
-            sumqtyLostCalls[loop] = Output.sumInArray(qtyLostCalls);
+            worstcallLossRate[loop]  = Output.maxInArray(callLossRate);
+            avecallLossRate[loop]    = Output.aveInArray(callLossRate);
+            sumcallLossRate[loop]    = Output.sumInArray(callLossRate);
+            sumqtyLostCalls[loop]    = Output.sumInArray(qtyLostCalls);
             minMaxcallLossRate[loop] = Output.minMaxInArray(callLossRate);
 
             output(loopNum, criterion, criNum, brokenLink, brokenBuilding, ammount, mag, outputMethod, hour, timeLength, timeDir, bldgs, callList, output, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
@@ -315,23 +313,22 @@ public class Main implements Runnable {
     }
 
     private void deleteCalls(CallList callList, int[] qtyExistingCalls, int[] qtyDeletedCalls, int t) {
-        for (Call call : callList.getLimitList(t)) {
-            call.delete();
+        for (Call call : callList.getCallsToEndList(t)) {
+            call.releaseCapacityOfLink();
             qtyExistingCalls[t]--;
             qtyDeletedCalls[t]++;
         }
-        callList.clearLimitList(t);
+        callList.clearCallsToEndList(t);
     }
 
-    private int routing(CallList callList, int[] qtyExistingCalls, int[] qtyLostCalls, ArrayList<Call>[] existingCallList, int t, int latestTimeOfCalls, ArrayList<CandiCall> candiCallList) {
-        for (CandiCall can : candiCallList) {
-            Call call = can.generateCall(callList);
-            if (call.success) {
+    private int routing(int[] qtyExistingCalls, int[] qtyLostCalls, ArrayList<Call>[] existingCallList, int t, int latestTimeOfCalls, ArrayList<Call> generatedCallList) {
+        for (Call call : generatedCallList) {
+            if (call.routing()) {
                 existingCallList[t].add(call);
                 qtyExistingCalls[t]++;
                 // 終了時刻の最遅値の更新
-                if (latestTimeOfCalls < call.EndTime) {
-                    latestTimeOfCalls = call.EndTime;
+                if (latestTimeOfCalls < call.getEndTime()) {
+                    latestTimeOfCalls = call.getEndTime();
                 }
             } else {
                 qtyLostCalls[t]++;
@@ -340,11 +337,12 @@ public class Main implements Runnable {
         return latestTimeOfCalls;
     }
 
-    private ArrayList<CandiCall> occurrenceOfCalls(int mag, Network bldgs, Building[] bldgList, int ammountRegulation, int[] qtyOccurredCalls, int t) {
-        ArrayList<CandiCall> candiCallList = new ArrayList<>();
+    private ArrayList<Call> occurrenceOfCalls(int mag, Network bldgs, Building[] bldgList, int ammountRegulation, int[] qtyOccurredCalls, int t, CallList callList) {
+        ArrayList<Call> candiCallList = new ArrayList<>();
         for (Building start : bldgList) {
             for (Building dest : bldgList) {
-                if (start == dest && dest.getBname().equals("区外")) {
+                //区外間の通信は考えない
+                if (start == dest && dest.isKugai()) {
                     continue;
                 }
                 int occur = start.generateTraffic(t, dest, mag);
@@ -357,8 +355,8 @@ public class Main implements Runnable {
                     }
                 }
                 for (int i = 0; i < occur; i++) {
-                    CandiCall candidate = new CandiCall(start, dest, t);
-                    candiCallList.add(candidate);
+                    Call call = new Call(start, dest, t, callList);
+                    candiCallList.add(call);
                     qtyOccurredCalls[t]++;
                 }
             }

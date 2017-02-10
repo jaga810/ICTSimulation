@@ -30,9 +30,9 @@ public class LargeRing {
      * @param dest  　呼を着信するビル
      * @return ルート上の全てのリンクのリスト　接続に失敗した場合nullが返る
      */
-    public ArrayList<Link> route(Building start, Building dest) {
+    public ArrayList<Link> routing(Building start, Building dest) {
         if (start == dest) {
-            System.out.println("Largering route error start == dest");
+            System.out.println("Largering routing error start == dest");
             Utility.error();
         }
         ArrayList<Link> usedLinkList;
@@ -71,7 +71,7 @@ public class LargeRing {
 
         // 区内から練馬
         if (start != kugaiRelayBldg) {
-            usedLinkList = route(start, kugaiRelayBldg);
+            usedLinkList = routing(start, kugaiRelayBldg);
             if (usedLinkList == null) {
                 // ルートが見つからない場合
                 return null;
@@ -157,7 +157,7 @@ public class LargeRing {
      * @param isRight
      * @return
      */
-    public ArrayList<Link> route(Building start, Building dest, boolean isRight) {
+    public ArrayList<Link> routing(Building start, Building dest, boolean isRight) {
         ArrayList<Link> link;
 
         boolean isOutBldg = isWithKugai(start, dest);
@@ -198,7 +198,7 @@ public class LargeRing {
             }
             // 練馬からゴール ルートがnullで例外発生
             try {
-                link.addAll(route(kugaiRelayBldg, dest, isRight));
+                link.addAll(routing(kugaiRelayBldg, dest, isRight));
             } catch (NullPointerException e) {
                 // System.out.println("routeWithKugai->localRingSearch(kugaiRelayBldg, dest) is null");
                 return null;
@@ -207,7 +207,7 @@ public class LargeRing {
             // 区内 -> 区外
             // 区内から練馬
             if (start != kugaiRelayBldg) {
-                link = route(start, kugaiRelayBldg, isRight);
+                link = routing(start, kugaiRelayBldg, isRight);
                 if (link == null) {
                     // ルートが見つからない場合の処理
                     return null;

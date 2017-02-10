@@ -157,7 +157,7 @@ public class Link {
      * @return
      */
     public boolean isAvail() {
-        return isBroken() || isMaxCap();
+        return !isBroken() && !isMaxCap();
     }
 
 	//引数の時間帯のトラフィックを返す

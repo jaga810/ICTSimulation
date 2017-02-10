@@ -15,7 +15,7 @@ import java.util.Arrays;
 /**
  * Created by jaga on 9/30/16.
  */
-public class GetMeshCode {
+public class MeshCode {
     public static void get() {
         Pair scale[] = getScaleData();
         try {

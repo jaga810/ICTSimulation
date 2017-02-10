@@ -15,6 +15,7 @@ public class Output {
     //一日分のデータの保存
       ArrayList<double[]> allCallLossRate = new ArrayList<>();
       ArrayList<double[]> allCallLoss = new ArrayList<>();
+
     //loop毎のデータの保存
       ArrayList<Double> timePointList[];
       ArrayList<Double> ammPointList[];
@@ -61,7 +62,7 @@ public class Output {
       void areaDevidedKosu(File folder, int loop , CallList group) {
         String path = folder + "/areaDevidedKosu.xls";
         String sheetName = "areaKosu_" + loop;
-        long array[] = group.getAreaKosu();
+        long array[] = group.getKosuInLocalRing();
 
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
@@ -76,7 +77,7 @@ public class Output {
         }
         // areaLossKosu
         sheetName = "areaLossKosu_" + loop;
-        array = group.getAreaLossKosu();
+        array = group.getLossKosuThroughKunaiRelayRing();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
@@ -84,7 +85,7 @@ public class Output {
 
         // exKosu
         sheetName = "exKosu_" + loop;
-        array = group.getExKosu();
+        array = group.getKosuThroughKunaiRelayRing();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
@@ -92,7 +93,7 @@ public class Output {
 
         // exLossKosu
         sheetName = "exLossKosu_" + loop;
-        array = group.getExLossKosu();
+        array = group.getLossKosuInLocalRing();
         sheet = wb.createSheet(sheetName);
         for (int i = 0; i < array.length; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);

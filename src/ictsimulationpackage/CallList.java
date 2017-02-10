@@ -3,75 +3,74 @@ package ictsimulationpackage;
 import java.util.ArrayList;
 
 /**
- * Created by jaga on 12/28/16.
+ * 全てのcallオブジェクトを管理するクラス
+ * ある時間に終了する呼の管理
+ * callオブジェクトで使用するリソースの確保
+ * 統計情報の管理
  */
 public class CallList {
-    // ある１つの呼のデータ
-    private ArrayList<Call> limitList[];// 有る時間に終了する呼のリスト
+    private final int bldgNum = 102;
+    
+    //callsToEndList[t]有る時間に終了する呼のリスト
+    private ArrayList<Call> callsToEndList[];
+
+    //sumHoldTime[t] 時間tに於ける保留時間の合計
     private int sumHoldTime[];
 
     //区内で発生した呼の生成数と呼損数（累計：時間全体で）
-    private long areaKosu[] = new long[102];
-    private long exLossKosu[] = new long[102];
+    private long kosuInLocalRing[];
+    private long lossKosuInLocalRing[];
 
     //区外で発生した呼の生成数と呼損数（累計）
-    private long exKosu[] = new long[102];
-    private long areaLossKosu[] = new long[102];
+    private long kosuThroughKunaiRelayRing[];
+    private long lossKosuThroughKunaiRelayRing[];
     private int timeLength;
 
-    //このsimulationで使用しているもの
-    private Network bldgList;
+    //このスレッドで使用するオブジェクト
+    private Network network;
     private LargeRing largeRing;
-
-    //このloopでのtimeregulationとHoldingTimeオブジェクト
-    private int timeRegulation;
     private HoldingTime holdingTime;
 
+    //時間規制を行う = 1, 行わない = 0
+    private int timeRegulation;
+    
     /**
-     * reset method for 1 day loop
+     * the initialization of callList
+     * @param tLength the length of time steps. ex) 24h * 60min = 1440 steps
+     * @param network 本スレッドで使用しているnetworkリソース
+     */
+    CallList(int tLength, Network network) {
+        this.timeLength = tLength;
+        this.network = network;
+        this.largeRing = new LargeRing(network);
+        Call.setTimeLength(tLength);
+    }
+
+    /**
+     * init method for 1 day loop
      * if the 24h simulation ends, this method is called
      */
-    void reset(int regulation) {
-        //各配列の初期化
-        limitList = new ArrayList[timeLength];
+    void init(int regulation) {
+        callsToEndList = new ArrayList[timeLength];
         for (int i = 0; i < timeLength; i++) {
             // 初期化
-            limitList[i] = new ArrayList<>();
+            callsToEndList[i] = new ArrayList<>();
             sumHoldTime[i] = 0;
         }
-        areaKosu = new long[102];
-        exLossKosu = new long[102];
-        areaLossKosu = new long[102];
-        exKosu = new long[102];
+        kosuInLocalRing = new long[bldgNum];
+        lossKosuInLocalRing = new long[bldgNum];
+        lossKosuThroughKunaiRelayRing = new long[bldgNum];
+        kosuThroughKunaiRelayRing = new long[bldgNum];
         sumHoldTime = new int[timeLength];
         timeRegulation = regulation;
         holdingTime = new HoldingTime();
     }
 
-    public int holdingTime() {
-        return holdingTime.OneHoldingTime(timeRegulation);
-    }
 
-    /**
-     * the initialization of callList
-     *
-     * @param tLength the length of time steps. ex) 24h * 60min = 1440 steps
-     */
-    CallList(int tLength, Network bldgList) {
-        sumHoldTime = new int[tLength];
-        limitList = new ArrayList[tLength];
-        for (int i = 0; i < tLength; i++) {
-            // 初期化
-            limitList[i] = new ArrayList<>();
-        }
-        timeLength = tLength;
-        Call.setTimeLength(tLength);
-        this.bldgList = bldgList;
-        this.largeRing = new LargeRing(bldgList);
-    }
 
-    public ArrayList<Link> route(Building start, Building dest) {
-        return largeRing.route(start, dest);
+
+    public ArrayList<Link> routing(Building start, Building dest) {
+        return largeRing.routing(start, dest);
     }
 
     void addSumHoldTime(int time, int holdTime) {
@@ -79,37 +78,21 @@ public class CallList {
     }
 
     public void addToLimitList(int endTIme, Call call) {
-        limitList[endTIme].add(call);
+        callsToEndList[endTIme].add(call);
     }
 
     /**
      * @param id the id of used link
      */
     public void addAreaKosu(int id) {
-        areaKosu[id]++;
+        kosuInLocalRing[id]++;
     }
 
     /**
      * @param id the id of used link
      */
     public void addExKosu(int id) {
-        exKosu[id]++;
-    }
-
-    public long[] getAreaKosu() {
-        return areaKosu;
-    }
-
-    public long[] getAreaLossKosu() {
-        return areaLossKosu;
-    }
-
-    public long[] getExKosu() {
-        return exKosu;
-    }
-
-    public long[] getExLossKosu() {
-        return exLossKosu;
+        kosuThroughKunaiRelayRing[id]++;
     }
 
     /**
@@ -117,19 +100,44 @@ public class CallList {
      *
      * @param t the temp time of this simulation
      */
-    public ArrayList<Call> getLimitList(int t) {
-        return limitList[t];
+    public ArrayList<Call> getCallsToEndList(int t) {
+        return callsToEndList[t];
     }
 
-    public void clearLimitList(int t) {
-        limitList[t].clear();
+    /**
+     * t時間帯のcallsToEndArrayの要素を削除する。
+     * @param t
+     */
+    public void clearCallsToEndList(int t) {
+        callsToEndList[t].clear();
     }
 
+    public int holdingTime() {
+        return holdingTime.OneHoldingTime(timeRegulation);
+    }
+    
+    /** getter */
     public double getSumHoldTime(int t) {
         return sumHoldTime[t];
     }
+    
+    public long[] getKosuInLocalRing() {
+        return kosuInLocalRing;
+    }
 
-    public Network getBldgList() {
-        return bldgList;
+    public long[] getLossKosuThroughKunaiRelayRing() {
+        return lossKosuThroughKunaiRelayRing;
+    }
+
+    public long[] getKosuThroughKunaiRelayRing() {
+        return kosuThroughKunaiRelayRing;
+    }
+
+    public long[] getLossKosuInLocalRing() {
+        return lossKosuInLocalRing;
+    }
+    
+    public Network getNetwork() {
+        return network;
     }
 }

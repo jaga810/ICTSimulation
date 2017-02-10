@@ -3,87 +3,102 @@ package ictsimulationpackage;
 import java.util.ArrayList;
 
 public class Call {
-    //変数
-    Building start;
-    Building dest;
-    int EndTime;
-    ArrayList<Link> linkList;
-    boolean success = false;
-    CallList group;
     static int timeLength;
 
-    static void setTimeLength(int time){
-        timeLength = time;
-    }
+    private Building start;
+    private Building dest;
+
+    private int EndTime;
+    private int sTime;
+
+    private ArrayList<Link> usedLinkList;
+    private boolean isSuccess = false;
+    private CallList callList;
+
 
     /**
-     * assess the possibility of call and store the result to the group
+     * assess the possibility of call and store the result to the callList
      * @param start the start building
-     * @param dest the destination building of this call
-     * @param time when this call occurs
-     * @param group which call list this call belongs to
+     * @param dest  the destination building of this call
+     * @param sTime  when this call occurs
+     * @param callList which call list this call belongs to
      */
-    Call(Building start, Building dest, int time, CallList group) {
-        //発着ビルの設定
+    Call(Building start, Building dest, int sTime, CallList callList) {
         this.start = start;
         this.dest = dest;
 
-        //呼のグループへの所属
-        this.group = group;
+        this.callList = callList;
+        this.sTime = sTime;
 
         // 終了時刻
-        int holdTime = group.holdingTime();
-        this.EndTime = time + holdTime;
-        group.addSumHoldTime(time,holdTime);
+        int holdTime = callList.holdingTime();
+        this.EndTime = sTime + holdTime;
+        callList.addSumHoldTime(sTime,holdTime);
+    }
 
+    /**
+     * ルーティング及び接続可能性評価を行う
+     * @return ルーティングが成功し、接続したらtrue 失敗したらfalse
+     */
+    public boolean routing(){
         //経路探索
         if (start == dest) {
-            // 出発ビルと到着ビルが同じ場合
-            if (!start.isBroken()) {
-                //ビルが壊れていなければ
-                success = true;
+            if (start.isAvail()) {
+                isSuccess = true;
             }
         } else {
-            // 使用するリンク
-            linkList = group.route(start, dest);
-            if (linkList != null) {
-                // 接続に成功した場合 null = 失敗
-                for (Link ln : linkList) {
+            usedLinkList = callList.routing(start, dest);
+            if (usedLinkList != null) {
+                // 接続に成功した場合
+                for (Link ln : usedLinkList) {
                     ln.addCap();
                 }
-                success = true;
+                isSuccess = true;
             }
         }
 
-        //呼が生成に成功した場合
-        if (success && EndTime < timeLength) {
-            group.addToLimitList(EndTime, this);
+        //呼が生成に成功した場合(シミュレーション時間内に終わらない呼は無視
+        if (isSuccess && EndTime < timeLength) {
+            callList.addToLimitList(EndTime, this);
             // 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
             if (start.getKunaiRelayBldg() != null && dest.getKunaiRelayBldg() != null && start != dest &&
-                    time < 14 * 60 && time > 12 * 60) {
+                    sTime < 14 * 60 && sTime > 12 * 60) {
                 if ((start.getKunaiRelayBldg() == dest.getKunaiRelayBldg())) {
-                    for (Link ln : linkList) {
+                    for (Link ln : usedLinkList) {
                         if (ln.getLinkId() < 102) {
-                            group.addAreaKosu(ln.getLinkId());
+                            callList.addAreaKosu(ln.getLinkId());
                         }
                     }
                 } else {
-                    for (Link ln : linkList) {
+                    for (Link ln : usedLinkList) {
                         if (ln.getLinkId() < 102) {
-                            group.addExKosu(ln.getLinkId());
+                            callList.addExKosu(ln.getLinkId());
                         }
                     }
                 }
             }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 使用リンクの回線を解放する
+     */
+    public void releaseCapacityOfLink() {
+        if (usedLinkList == null) {
+            return;
+        }
+        for (Link ln : usedLinkList) {
+            ln.subCap();
         }
     }
 
-    void delete() {
-        if (linkList == null) {
-            return;
-        }
-        for (Link ln : linkList) {
-            ln.subCap();
-        }
+    public int getEndTime() {
+        return EndTime;
+    }
+
+    static void setTimeLength(int time){
+        timeLength = time;
     }
 }

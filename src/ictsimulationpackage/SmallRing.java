@@ -12,7 +12,7 @@ public class SmallRing {
      */
     public ArrayList<Link> localRingSearch(Building start, Building dest) {
         if (start == dest) {
-            System.out.println("smallring route error start == dest");
+            System.out.println("smallring routing error start == dest");
             Utility.error();
         }
         ArrayList<Link> usedLinkList;
@@ -51,7 +51,7 @@ public class SmallRing {
      */
     public ArrayList<Link> kunaiRelayRingSearch(Building start, Building dest) {
         if (start == dest) {
-            System.out.println("smallring route error start == dest");
+            System.out.println("smallring routing error start == dest");
             Utility.error();
         }
 
@@ -245,13 +245,6 @@ public class SmallRing {
      */
     ArrayList<Link> localRingSearch(Building start, Building dest, boolean isRight) {
         ArrayList<Link> linkList;
-
-        //探索を右回りで行うかどうかはランダムにキマる
-//		boolean isRight = false;
-//		if(Math.random() > 0.5){
-//			isRight = true;
-//		}
-
         if (start.isKunaiRelayBuilding() && dest.isKunaiRelayBuilding()) {
             //中継ビル同士の探索
             if (isRight) {

@@ -85,8 +85,8 @@ public class EarlangB2 {
                         double traffic = row.getCell(k + 2).getNumericCellValue();
 
                         //右回り固定と左回り固定でそれぞれ探索。通る可能性のあるリンクを洗い出す
-                        ArrayList<Link> lnListR = ring.route(start, dest, true);
-                        ArrayList<Link> lnListL = ring.route(start, dest, false);
+                        ArrayList<Link> lnListR = ring.routing(start, dest, true);
+                        ArrayList<Link> lnListL = ring.routing(start, dest, false);
 
                         if (lnListR == null) {
                             System.out.println("null");
