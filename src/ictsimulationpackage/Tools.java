@@ -14,7 +14,7 @@ public class Tools {
 		String path = "/Users/jaga/Documents/domain_project/kosuS";
 		String sheetName = "ebara";
 		
-		Output.doubleArrayToExcel(sum, path, sheetName);
+		IOHelper.doubleArrayToExcel(sum, path, sheetName);
 	}
 	
 	//有るビルに区内から発着する呼の計上を時間合計に返す

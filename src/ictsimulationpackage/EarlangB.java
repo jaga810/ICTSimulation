@@ -43,9 +43,9 @@ public class EarlangB {
     }
 
     public void output(HashMap<Double, ?> clr) {
-        File outputDir = Output.getTimeDir();
+        File outputDir = IOHelper.getTimeDir();
         File file = new File(outputDir + "/earlangB.xls");
-        Workbook wb = Output.getWorkbook(file, new HSSFWorkbook());
+        Workbook wb = IOHelper.getWorkbook(file, new HSSFWorkbook());
         Sheet sh = wb.createSheet("earlangB");
 
         int i = 0;
@@ -54,7 +54,7 @@ public class EarlangB {
             row.createCell(0).setCellValue(key);
             row.createCell(1).setCellValue(clr.get(key).toString());
         }
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
     }
 
 
@@ -193,7 +193,7 @@ public class EarlangB {
                 clrList[h] = clList[h] / gcList[h];
 //                System.out.println(m + "倍: " + h + "時台:" + clList[h]);
             }
-            clrByMag.put(mag,Output.maxInArray(clrList) * 100.0);
+            clrByMag.put(mag, IOHelper.maxInArray(clrList) * 100.0);
             System.out.println(mag + "倍: " +clrByMag.get(mag));
         }
         return clrByMag;
@@ -264,7 +264,7 @@ public class EarlangB {
                 clrList[h] = clList[h].divide(gcList[h], mal, BigDecimal.ROUND_HALF_UP);
 //                System.out.println(m + "倍: " + h + "時台:" + clList[h]);
             }
-            clrByMag.put(mag,Output.maxInArray(clrList).multiply(BigDecimal.valueOf(100)));
+            clrByMag.put(mag, IOHelper.maxInArray(clrList).multiply(BigDecimal.valueOf(100)));
             System.out.println(mag + "倍: " +clrByMag.get(mag));
         }
         return clrByMag;

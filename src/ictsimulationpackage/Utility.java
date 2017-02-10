@@ -21,7 +21,7 @@ public class Utility {
     }
 
     /**
-     * とりあえずエラーが出したい時
+     * とりあえずエラーが出したい時につかう
      */
     public static void error() {
         System.out.println(1/0);

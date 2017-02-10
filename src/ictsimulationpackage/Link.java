@@ -172,6 +172,6 @@ public class Link {
 	}
 
 	public double getMaxTrrafic() {
-		return Output.maxInArray(trrafic);
+		return IOHelper.maxInArray(trrafic);
 	}
 }

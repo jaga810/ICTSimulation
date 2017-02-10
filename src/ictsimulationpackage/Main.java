@@ -18,7 +18,7 @@ public class Main implements Runnable {
         final int maxThreadsNum = 3;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
 
         /**出力関連**/
-        File dateDir = Output.getDateDir();
+        File dateDir = IOHelper.getDateDir();
 
         /**シミュレーション**/
         double sTime = System.nanoTime();
@@ -28,7 +28,7 @@ public class Main implements Runnable {
         System.out.println((System.nanoTime() - sTime) / 1.0e9 + "s");
 
         /** 全体のサマリーの出力 **/
-        Output.limitRegulationPoint(dateDir, minBrokenBldgLimit, maxBrokenBldgLimit);
+        IOHelper.limitRegulationPoint(dateDir, minBrokenBldgLimit, maxBrokenBldgLimit);
     }
 
     /**
@@ -74,7 +74,7 @@ public class Main implements Runnable {
         //需要を元の呼の発生量の何倍に設定するか
         final int mag = 5;
 
-        //output 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
+        //IOHelper 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
         final int outputMethod[] = {3, 6};
 
         //規制の書け方 0:規制なし/手動規制 1: 4角規制方針の比較
@@ -120,7 +120,7 @@ public class Main implements Runnable {
         /** 初期化　**/
         Network bldgs = new Network();
         CallList callList = new CallList(timeLength, bldgs);
-        Output output = new Output();
+        IOHelper IOHelper = new IOHelper();
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
         Building[] bldgList = bldgs.getBldgList();
         bldgs.getScale();//シナリオの震度分布の読み込み
@@ -219,13 +219,13 @@ public class Main implements Runnable {
                 avgHoldTime[t] = Double.valueOf(callList.getSumHoldTime(t)) / Double.valueOf(qtyOccurredCalls[t]);
             }
 
-            worstcallLossRate[loop]  = Output.maxInArray(callLossRate);
-            avecallLossRate[loop]    = Output.aveInArray(callLossRate);
-            sumcallLossRate[loop]    = Output.sumInArray(callLossRate);
-            sumqtyLostCalls[loop]    = Output.sumInArray(qtyLostCalls);
-            minMaxcallLossRate[loop] = Output.minMaxInArray(callLossRate);
+            worstcallLossRate[loop]  = IOHelper.maxInArray(callLossRate);
+            avecallLossRate[loop]    = IOHelper.aveInArray(callLossRate);
+            sumcallLossRate[loop]    = IOHelper.sumInArray(callLossRate);
+            sumqtyLostCalls[loop]    = IOHelper.sumInArray(qtyLostCalls);
+            minMaxcallLossRate[loop] = IOHelper.minMaxInArray(callLossRate);
 
-            output(loopNum, criterion, criNum, brokenLink, brokenBuilding, ammount, mag, outputMethod, hour, timeLength, timeDir, bldgs, callList, output, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
+            output(loopNum, criterion, criNum, brokenLink, brokenBuilding, ammount, mag, outputMethod, hour, timeLength, timeDir, bldgs, callList, IOHelper, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
             double loopDur = (System.nanoTime() - loopStartTime) * 1.0e-9;
             System.out.println("limit-" + brokenBldglimit + ":loop-" + (loop + 1) + " time :" + loopDur);
         }
@@ -250,7 +250,7 @@ public class Main implements Runnable {
                 case 4:
                     arr = minMaxcallLossRate;
             }
-            output.BreakLinkInOrderOutput(loopNum, arr, timeDir, criterion);
+            IOHelper.BreakLinkInOrderOutput(loopNum, arr, timeDir, criterion);
         }
 
 
@@ -258,46 +258,46 @@ public class Main implements Runnable {
         System.out.println("計算時間：" + (calcTime * (Math.pow(10, -9))) + "s");
     }
 
-    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, Network bldgs, CallList callList, Output output, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
+    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, Network bldgs, CallList callList, IOHelper IOHelper, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
         // summary
         if (contain(outputMethod, 5)) {
-            output.summaryOutput(timeDir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
+            IOHelper.summaryOutput(timeDir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
         }
 
         // standard outputを行う
         if (contain(outputMethod, 0)) {
-            output.StandardOutput(timeLength, timeDir, callLossRate, loop, bldgs);
+            IOHelper.StandardOutput(timeLength, timeDir, callLossRate, loop, bldgs);
         }
 
 
         //通信規制の方針を比較する
         if (contain(outputMethod, 3)) {
             if (loop == 0) {
-                output.regulaitonMethodDevidedInitialize(criNum);
+                IOHelper.regulaitonMethodDevidedInitialize(criNum);
             }
 
-            output.regulationMethodDevided(hour, timeLength, timeDir, loop, mag, qtyExistingCalls,
+            IOHelper.regulationMethodDevided(hour, timeLength, timeDir, loop, mag, qtyExistingCalls,
                     qtyOccurredCalls, qtyLostCalls, callLossRate, qtyDeletedCalls, avgHoldTime, loopNum, timeRegulation, ammountRegulation, criNum, bldgs.getBldgList());
         }
 
 
         //通信制限欠けた場合と欠けない場合を連続でデータ取った後のポイントのデータ
         if (contain(outputMethod, 6) && loop == loopNum - 1 && criterion == 5) {
-            output.regulationPointOutput(timeDir, criNum, bldgs, brokenBldglimit);
+            IOHelper.regulationPointOutput(timeDir, criNum, bldgs, brokenBldglimit);
 
         } else if (contain(outputMethod, 6) && loop == loopNum - 1) {
-            output.regulationPointOutput(timeDir, 0, bldgs, brokenBldglimit);
+            IOHelper.regulationPointOutput(timeDir, 0, bldgs, brokenBldglimit);
         }
 
         //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
         if (contain(outputMethod, 2)) {
-            output.magDevidedOutput(hour, timeLength, timeDir, loop, mag, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls,
+            IOHelper.magDevidedOutput(hour, timeLength, timeDir, loop, mag, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls,
                     callLossRate, qtyDeletedCalls, avgHoldTime);
         }
 
         //発生area別に呼数を出力する
         if (contain(outputMethod, 1)) {
-            output.areaDevidedKosu(timeDir, loop, callList);
+            IOHelper.areaDevidedKosu(timeDir, loop, callList);
         }
     }
 

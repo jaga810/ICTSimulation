@@ -10,8 +10,9 @@ import java.util.HashMap;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-public class Output {
+public class IOHelper {
     //一日分のデータの保存
       ArrayList<double[]> allCallLossRate = new ArrayList<>();
       ArrayList<double[]> allCallLoss = new ArrayList<>();
@@ -121,7 +122,7 @@ public class Output {
         String path = timedir + "/magDevidedOutput.xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
         Sheet sheet;
         if (loop > 0) {
             sheet = wb.createSheet("呼量" + mag + "倍_broken");
@@ -213,7 +214,7 @@ public class Output {
         sheet.createRow(26).createCell(0).setCellValue("最大呼損率/h");
         sheet.createRow(27).createCell(0).setCellValue(worst_loss_rate);
 
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
     }
 
     public  void regulaitonMethodDevidedInitialize(int criNum) {
@@ -237,7 +238,7 @@ public class Output {
         String path = timedir + "/regulationMethodDevidedOutput_" + (loop / 4) + ".xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
         Sheet sheet;
         Row row;
         Cell cell;
@@ -308,12 +309,12 @@ public class Output {
         cell.setCellValue("avg holding time");
 
 
-        double callOccurH[] = Output.arrayIntoHour(callOccur);
-        double callLossH[] = Output.arrayIntoHour(callLoss);
-        double callLossRateH[] = Output.arrayIntoHourRate(callLossRate);
-        double callExistH[] = Output.arrayIntoHour(callExist);
-        double callDeletedH[] = Output.arrayIntoHour(callDeleted);
-        double avgHoldTimeH[] = Output.arrayIntoHourRate(avgHoldTime);
+        double callOccurH[] = IOHelper.arrayIntoHour(callOccur);
+        double callLossH[] = IOHelper.arrayIntoHour(callLoss);
+        double callLossRateH[] = IOHelper.arrayIntoHourRate(callLossRate);
+        double callExistH[] = IOHelper.arrayIntoHour(callExist);
+        double callDeletedH[] = IOHelper.arrayIntoHour(callDeleted);
+        double avgHoldTimeH[] = IOHelper.arrayIntoHourRate(avgHoldTime);
 
         for (int h = 0; h < hour; h++) {
             row = sheet.createRow(h + 1);
@@ -641,7 +642,7 @@ public class Output {
             allCallLossRate.clear();
             allCallLoss.clear();
         }
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
     }
 
 
@@ -695,7 +696,7 @@ public class Output {
 
         File file = new File(timedir + "/standardData.xls");
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
 
         Sheet sheet = wb.createSheet("capHis_" + loop);
         Row row;
@@ -715,7 +716,7 @@ public class Output {
         for (int t = 0; t < timeLength; t++) {
             sheet.createRow(t).createCell(0).setCellValue(arr[t]);
         }
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
     }
 
 
@@ -749,7 +750,7 @@ public class Output {
         String fileName = folder + "/BreakLinkInOrde" + cri + ".xls";
         File file = new File(fileName);
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
 
         //sheetの作成
         Sheet sheet;
@@ -757,7 +758,7 @@ public class Output {
         for (int i = 0; i < loopNum; i++) {
             sheet.createRow(i).createCell(0).setCellValue(array[i]);
         }
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
     }
 
      public synchronized void regulationPointOutput(File folder, int criNum, Network bldgs, int brokenBldgLimit) {
@@ -765,7 +766,7 @@ public class Output {
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
 
         //sheetの作成
         Sheet s = wb.createSheet("init");
@@ -831,7 +832,7 @@ public class Output {
             r.createCell(0).setCellValue(bList[i].getBname());
             r.createCell(1).setCellValue(brokenBldgCnt[i]);
         }
-        Output.output(file, wb);
+        IOHelper.output(file, wb);
 
         //limit毎の記録
         ArrayList<Double> cpTimeList[] = new ArrayList[timePointList.length];
@@ -870,7 +871,7 @@ public class Output {
         String fileName = folder + "/pointOutputSummary_"+time+".xls";
         File file = new File(fileName);
         Workbook wb = new HSSFWorkbook();
-        wb = Output.getWorkbook(file, wb);
+        wb = IOHelper.getWorkbook(file, wb);
 
         //シートの作成->criterion別
         Sheet sheets[] = new Sheet[5];
@@ -1064,5 +1065,17 @@ public class Output {
             timedir.mkdir();
         }
         return timedir;
+    }
+
+    public static XSSFWorkbook importExcelToWorkBook(String path) {
+        XSSFWorkbook book = null;
+        try {
+            FileInputStream f = new FileInputStream(path);
+            book = new XSSFWorkbook(f);
+            f.close();
+        }  catch (IOException e) {
+            e.printStackTrace();
+        }
+        return book;
     }
 }
