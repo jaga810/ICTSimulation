@@ -2,25 +2,30 @@ package ictsimulationpackage;
 
 import java.util.ArrayList;
 
+/**
+ * 呼のクラス
+ * コンストラクタで必要な情報を受け取り生起する
+ * routing()でルーティングと接続可能性評価を行う
+ * 2段階に分けることで生起後のルーティングをランダム順序で行うことができる
+ */
 public class Call {
-    static int timeLength;
+    static private int timeLength;
 
     private Building start;
     private Building dest;
 
     private int EndTime;
-    private int sTime;
 
     private ArrayList<Link> usedLinkList;
-    private boolean isSuccess = false;
     private CallList callList;
 
 
     /**
      * assess the possibility of call and store the result to the callList
-     * @param start the start building
-     * @param dest  the destination building of this call
-     * @param sTime  when this call occurs
+     *
+     * @param start    the start building
+     * @param dest     the destination building of this call
+     * @param sTime    when this call occurs
      * @param callList which call list this call belongs to
      */
     Call(Building start, Building dest, int sTime, CallList callList) {
@@ -28,58 +33,61 @@ public class Call {
         this.dest = dest;
 
         this.callList = callList;
-        this.sTime = sTime;
 
         // 終了時刻
-        int holdTime = callList.holdingTime();
+        int holdTime = callList.calcHoldingTime();
         this.EndTime = sTime + holdTime;
-        callList.addSumHoldTime(sTime,holdTime);
+        callList.addSumHoldTime(sTime, holdTime);
     }
 
     /**
      * ルーティング及び接続可能性評価を行う
+     *
      * @return ルーティングが成功し、接続したらtrue 失敗したらfalse
      */
-    public boolean routing(){
-        //経路探索
-        if (start == dest) {
+    public boolean routing() {
+        //start==destのルーティングはここで処理
+        if (start == dest){
             if (start.isAvail()) {
-                isSuccess = true;
-            }
-        } else {
-            usedLinkList = callList.routing(start, dest);
-            if (usedLinkList != null) {
-                // 接続に成功した場合
-                for (Link ln : usedLinkList) {
-                    ln.addCap();
-                }
-                isSuccess = true;
+                return true;
+            } else {
+                return false;
             }
         }
 
-        //呼が生成に成功した場合(シミュレーション時間内に終わらない呼は無視
-        if (isSuccess && EndTime < timeLength) {
-            callList.addToLimitList(EndTime, this);
-            // 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
-            if (start.getKunaiRelayBldg() != null && dest.getKunaiRelayBldg() != null && start != dest &&
-                    sTime < 14 * 60 && sTime > 12 * 60) {
-                if ((start.getKunaiRelayBldg() == dest.getKunaiRelayBldg())) {
-                    for (Link ln : usedLinkList) {
-                        if (ln.getLinkId() < 102) {
-                            callList.addAreaKosu(ln.getLinkId());
-                        }
-                    }
-                } else {
-                    for (Link ln : usedLinkList) {
-                        if (ln.getLinkId() < 102) {
-                            callList.addExKosu(ln.getLinkId());
-                        }
-                    }
-                }
-            }
-            return true;
+        //start != destが保証される必要有り
+        usedLinkList = callList.routing(start, dest);
+        if (usedLinkList == null) return false;//接続失敗
+
+        // 接続に成功した場合
+        for (Link ln : usedLinkList) {
+            ln.addCap();
         }
-        return false;
+
+        // 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
+        sortOutKosuInLocalRing();
+
+        //シミュレーション時間内に終わる呼をリストに追加
+        if (EndTime < timeLength) {
+            callList.addCallsToEndList(EndTime, this);
+        }
+        return true;
+    }
+
+    /**
+     * 呼の発生種別をリンクに選り分ける=>区内呼のシミュレーション用
+     */
+    private void sortOutKosuInLocalRing() {
+        if ((start.isOnSameLocalRing(dest))) {
+            for (Link ln : usedLinkList) {
+                callList.addKosuInLocalRing(ln.getLinkId());
+
+            }
+        } else {
+            for (Link ln : usedLinkList) {
+                callList.addKosuThroughKunaiRelayRing(ln.getLinkId());
+            }
+        }
     }
 
     /**
@@ -94,11 +102,12 @@ public class Call {
         }
     }
 
+    /** getter setter*/
     public int getEndTime() {
         return EndTime;
     }
 
-    static void setTimeLength(int time){
+    static public void setTimeLength(int time) {
         timeLength = time;
     }
 }

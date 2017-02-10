@@ -29,7 +29,6 @@ public class CallList {
     //このスレッドで使用するオブジェクト
     private Network network;
     private LargeRing largeRing;
-    private HoldingTime holdingTime;
 
     //時間規制を行う = 1, 行わない = 0
     private int timeRegulation;
@@ -63,7 +62,6 @@ public class CallList {
         kosuThroughKunaiRelayRing = new long[bldgNum];
         sumHoldTime = new int[timeLength];
         timeRegulation = regulation;
-        holdingTime = new HoldingTime();
     }
 
 
@@ -77,21 +75,21 @@ public class CallList {
         sumHoldTime[time] += holdTime;
     }
 
-    public void addToLimitList(int endTIme, Call call) {
+    public void addCallsToEndList(int endTIme, Call call) {
         callsToEndList[endTIme].add(call);
     }
 
     /**
      * @param id the id of used link
      */
-    public void addAreaKosu(int id) {
+    public void addKosuInLocalRing(int id) {
         kosuInLocalRing[id]++;
     }
 
     /**
      * @param id the id of used link
      */
-    public void addExKosu(int id) {
+    public void addKosuThroughKunaiRelayRing(int id) {
         kosuThroughKunaiRelayRing[id]++;
     }
 
@@ -112,8 +110,21 @@ public class CallList {
         callsToEndList[t].clear();
     }
 
-    public int holdingTime() {
-        return holdingTime.OneHoldingTime(timeRegulation);
+    public int calcHoldingTime() {
+        int limit = 1; // 通信時間規制：最大分数（０ならば規制なし）
+        double tau;
+        double lambda = 0.02166911;
+        tau = -1.0 / lambda * Math.log(1.0 - Math.random());
+        int time = (int) Math.round(tau / 60);
+
+        // 通信時間規制
+        if (timeRegulation == 1) {
+            if (limit > 0 && time > limit) {
+                time = 1;
+            }
+        }
+
+        return (time);
     }
     
     /** getter */
@@ -135,9 +146,5 @@ public class CallList {
 
     public long[] getLossKosuInLocalRing() {
         return lossKosuInLocalRing;
-    }
-    
-    public Network getNetwork() {
-        return network;
     }
 }
