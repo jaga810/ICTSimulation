@@ -2,6 +2,12 @@ package ictsimulationpackage;
 
 import java.util.*;
 
+/**
+ * SmallRingオブジェクトでは
+ * localRingSearch      : ローカルリング上のルート探索
+ * kunaiRelayRingSearch : 23区内中継リング上のルート探索
+ * を行う。
+ */
 public class SmallRing {
 
     /**

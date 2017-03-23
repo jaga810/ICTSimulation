@@ -3,21 +3,19 @@ package ictsimulationpackage;
 import java.util.ArrayList;
 
 /**
- * あるビル->ビルへのルーティングを行う
- * smallRingではローカルリング内でのルーティング
- * largeRingでは区内中継・区外中継含めたルーティング
+ * LargeRingでは任意の中継ビル間のルーティングを行う
+ * routingメソッドを呼び出せば良い
+ * ただしstart == destの入力は受け付けないことに注意
  */
 public class LargeRing {
     private Network network;
     private Building kugaiRelayBldg;
-    private Building kugaiBldg;
     private Link kugaiRelayLink;
     private SmallRing smallRing;
 
     public LargeRing(Network network) {
         this.network = network;
         kugaiRelayBldg = network.getKugaiRelayBldg();
-        kugaiBldg = network.getKugaiBldg();
         kugaiRelayLink = kugaiRelayBldg.getOutLink();
         smallRing = new SmallRing();
     }

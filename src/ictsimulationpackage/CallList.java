@@ -9,7 +9,7 @@ import java.util.ArrayList;
  * 統計情報の管理
  */
 public class CallList {
-    private final int bldgNum = 102;
+    private final int bldgNum = Setting.BUILDING_NUM.get();
     
     //callsToEndList[t]有る時間に終了する呼のリスト
     private ArrayList<Call> callsToEndList[];
@@ -30,7 +30,7 @@ public class CallList {
     private Network network;
     private LargeRing largeRing;
 
-    //時間規制を行う = 1, 行わない = 0
+    //時間規制を行う >= 1, 行わない = 0
     private int timeRegulation;
     
     /**
@@ -48,20 +48,27 @@ public class CallList {
     /**
      * init method for 1 day loop
      * if the 24h simulation ends, this method is called
+     * @param timeRegulation >=0 しか受け付けない。0じゃなければ保留時間の最大値を
+     *                       timeregulation分数分にして時間規制をかける
      */
-    void init(int regulation) {
+    void init(int timeRegulation) {
+        sumHoldTime = new int[timeLength];
         callsToEndList = new ArrayList[timeLength];
         for (int i = 0; i < timeLength; i++) {
             // 初期化
             callsToEndList[i] = new ArrayList<>();
             sumHoldTime[i] = 0;
         }
+
         kosuInLocalRing = new long[bldgNum];
         lossKosuInLocalRing = new long[bldgNum];
         lossKosuThroughKunaiRelayRing = new long[bldgNum];
         kosuThroughKunaiRelayRing = new long[bldgNum];
-        sumHoldTime = new int[timeLength];
-        timeRegulation = regulation;
+
+
+        //regulation>=0で
+        if(timeRegulation < 0)Utility.error();
+        this.timeRegulation = timeRegulation;
     }
 
 
@@ -90,6 +97,7 @@ public class CallList {
      * @param id the id of used link
      */
     public void addKosuThroughKunaiRelayRing(int id) {
+        if(id < kosuThroughKunaiRelayRing.length)
         kosuThroughKunaiRelayRing[id]++;
     }
 
@@ -110,20 +118,22 @@ public class CallList {
         callsToEndList[t].clear();
     }
 
+    /**
+     * timeRegulationを考慮して保留時間を計算する
+     * @return
+     */
     public int calcHoldingTime() {
-        int limit = 1; // 通信時間規制：最大分数（０ならば規制なし）
         double tau;
         double lambda = 0.02166911;
         tau = -1.0 / lambda * Math.log(1.0 - Math.random());
         int time = (int) Math.round(tau / 60);
 
         // 通信時間規制
-        if (timeRegulation == 1) {
-            if (limit > 0 && time > limit) {
+        if (timeRegulation != 0) {
+            if (timeRegulation > 0 && time > timeRegulation) {
                 time = 1;
             }
         }
-
         return (time);
     }
     

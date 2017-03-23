@@ -8,11 +8,9 @@ public class Main implements Runnable {
 
     private int brokenBldglimit;
     private File dateDir;
-    private int bldgNum;
 
     public static void main(String args[]) {
         /**各種設定変数**/
-        final int bldgNum = 102; //使用する中継ビルの個数（県外除く）
         final int minBrokenBldgLimit = 1;
         final int maxBrokenBldgLimit = 10;
         final int maxThreadsNum = 3;//同時に走らせるスレッドの最大数（2GBメモリ振って4,5くらいが限界)
@@ -21,11 +19,12 @@ public class Main implements Runnable {
         File dateDir = IOHelper.getDateDir();
 
         /**シミュレーション**/
-        double sTime = System.nanoTime();
+        Utility util = new Utility();
+        Utility.Timer timer = util.new Timer();
 
-        simulation(bldgNum, minBrokenBldgLimit, maxBrokenBldgLimit, maxThreadsNum, dateDir);
+        startSimulation(Setting.BUILDING_NUM.get(), minBrokenBldgLimit, maxBrokenBldgLimit, maxThreadsNum, dateDir);
 
-        System.out.println((System.nanoTime() - sTime) / 1.0e9 + "s");
+        System.out.println("all simulation finished in " + timer.getSec());
 
         /** 全体のサマリーの出力 **/
         IOHelper.limitRegulationPoint(dateDir, minBrokenBldgLimit, maxBrokenBldgLimit);
@@ -39,16 +38,14 @@ public class Main implements Runnable {
      * @param bldgNum         中継ビルの数
      */
     Main(final int brokenBldglimit, final File dateDir, final int bldgNum) {
-        this.bldgNum = bldgNum;
         this.brokenBldglimit = brokenBldglimit;
         this.dateDir = dateDir;
     }
 
     public void run() {
         /****各種設定****/
-
         // ループの回数
-        final int loopNum = 4 * 1;
+        final int loopNum = 4 * 10;
 
         //東京湾直下型地震シナリオによる破壊の有無 0:mu 1:ari
         final int scenario = 1;
@@ -69,10 +66,10 @@ public class Main implements Runnable {
         final String brokenBuilding[] = {};
 
         //破壊時に元の容量の何倍に設定するか
-        final double ammount = 0;
+        final double capMagWhenBroken = 0;
 
         //需要を元の呼の発生量の何倍に設定するか
-        final int mag = 5;
+        final int capMag = 5;
 
         //IOHelper 0:stanndard 1:areaDevidedKosu 2:magDevidedKosu 3:regulationDevided 4:BreakInorder 5:summary 6:pointSum
         final int outputMethod[] = {3, 6};
@@ -81,7 +78,6 @@ public class Main implements Runnable {
         final int regMethod = 1;
 
         /*** 初期化関連 ***/
-
         //４つの規制方針の比較につかう non -> time -> amm -> bothの順番 [][0] = time [][1] = amm
         final int[][] regulationMethod = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 
@@ -101,31 +97,28 @@ public class Main implements Runnable {
         double[] minMaxcallLossRate = new double[loopNum];
 
         // 計算時間の算出
-        double calcTime = System.nanoTime();
-
-        //何時間分のシミュレーションを行うか
-        final int hour = 24;
+        Utility util = new Utility();
+        Utility.Timer timer = util.new Timer();
 
         //タイムステップ ( hour * 60分)
-        final int timeLength = hour * 60;
+        final int timeSteps = Setting.SIMULATION_HOUR.get() * 60;
 
         // 各リンク設計回線数
-        final int localLinkCapacity = 11200 * 2;
-        final int kunaiLinkCapacity = 16300 * 2;
-        final int kugaiLinkCapacity = 33200 * 2;
+        final int localLinkCapacity = Setting.LOCAL_LINK_CAPACITY.get();
+        final int kunaiLinkCapacity = Setting.KUNAI_LINK_CAPACITY.get();
+        final int kugaiLinkCapacity = Setting.KUGAI_LINK_CAPACITY.get();
 
         //このスレッドで使うディレクトリの作成
-        File timeDir = getTimeDir();
+        File timeDir = IOHelper.getTimeDir();
 
         /** 初期化　**/
         Network bldgs = new Network();
-        CallList callList = new CallList(timeLength, bldgs);
+        CallList callList = new CallList(timeSteps, bldgs);
         IOHelper IOHelper = new IOHelper();
         ArrayList<Link> allLinks = bldgs.getAllLinkList();
         Building[] bldgList = bldgs.getBldgList();
         bldgs.getScale();//シナリオの震度分布の読み込み
 
-        loop:
         for (int loop = 0; loop < loopNum; loop++) {
             /***通信規制の設定***/
             int timeRegulation = 0; //通信時間規制 0:規制なし 1:一分間に限定
@@ -142,6 +135,9 @@ public class Main implements Runnable {
             }
 
             /***initialization***/
+            //シミュレーション時間の計測
+            Utility.Timer loopTimer = util.new Timer();
+
             // Callの持続時間の方針: 0:制限なし 1:１分まで
             callList.init(timeRegulation);
 
@@ -151,46 +147,45 @@ public class Main implements Runnable {
             }
 
             // qtyExistingCalls[t] = 時刻tに存在する呼の数 ;  qty = quantitiy(量・数）の意味で使う
-            int qtyExistingCalls[] = new int[timeLength];
+            int qtyExistingCalls[] = new int[timeSteps];
 
             // qtyOccurredCalls[t] = 時刻tに生起した呼の数
-            int qtyOccurredCalls[] = new int[timeLength];
+            int qtyOccurredCalls[] = new int[timeSteps];
 
             // qtyLostCalls[t] = 時刻tに損失した呼の数
-            int qtyLostCalls[] = new int[timeLength];
+            int qtyLostCalls[] = new int[timeSteps];
 
             // 削除された呼の数
-            int qtyDeletedCalls[] = new int[timeLength];
+            int qtyDeletedCalls[] = new int[timeSteps];
 
             // callLossRate[t] = 時刻tの呼損率
-            double callLossRate[] = new double[timeLength];
+            double callLossRate[] = new double[timeSteps];
 
             // 保留時間の平均
-            double[] avgHoldTime = new double[timeLength];
+            double[] avgHoldTime = new double[timeSteps];
 
             // timeOfLastCall.get(t) = 時刻tにおいて発生した呼の中で最も終了時刻の遅いものの値
             ArrayList<Integer> timeOfLastCall = new ArrayList<>();
 
             //リンクの回線数を初期化
-            initializeLinks(timeLength, localLinkCapacity, kunaiLinkCapacity, kugaiLinkCapacity, bldgs);
+            initializeLinks(timeSteps, localLinkCapacity, kunaiLinkCapacity, kugaiLinkCapacity, bldgs);
 
 
             //existingCallList[t] = 時刻tに現存する呼のリスト
-            ArrayList<Call> existingCallList[] = new ArrayList[timeLength];
+            ArrayList<Call> existingCallList[] = new ArrayList[timeSteps];
             initArrayList(existingCallList);
 
             // endCallList[t] = 時刻tに終了する呼のリスト
-            ArrayList<Call> endCallList[] = new ArrayList[timeLength + 100];
+            ArrayList<Call> endCallList[] = new ArrayList[timeSteps + 100];
             initArrayList(endCallList);
 
             //シナリオ|手動による施設の破壊を行う
-            breakNetwork(scenario, brokenLink, brokenBuilding, ammount, outputMethod, bldgs, loop);
+            breakNetwork(scenario, brokenLink, brokenBuilding, capMagWhenBroken, outputMethod, bldgs, loop);
 
-            System.out.println("limit : " + brokenBldglimit + " loop : " + (loop + 1) + " , mag : " + mag + " ");
-            double loopStartTime = System.nanoTime();
+            System.out.println("limit : " + brokenBldglimit + " loop : " + (loop + 1) + " , mag : " + capMag + " ");
 
             // 時間ループの開始（シミュレーション一回分)
-            for (int t = 0; t < timeLength; t++) {
+            for (int t = 0; t < timeSteps; t++) {
                 int latestTimeOfCalls = t;// 此度発生した呼の終了時刻の最遅値
                 // capacityと現存呼は保存される
                 if (t > 0) {
@@ -201,7 +196,7 @@ public class Main implements Runnable {
                 }
 
                 //呼の生起
-                ArrayList<Call> generatedCallList = occurrenceOfCalls(mag, bldgs, bldgList, ammountRegulation, qtyOccurredCalls, t, callList);
+                ArrayList<Call> generatedCallList = occurrenceOfCalls(capMag, bldgs, bldgList, ammountRegulation, qtyOccurredCalls, t, callList);
                 Collections.shuffle(generatedCallList);
 
                 //ルーティング及び接続可能性評価
@@ -219,15 +214,14 @@ public class Main implements Runnable {
                 avgHoldTime[t] = Double.valueOf(callList.getSumHoldTime(t)) / Double.valueOf(qtyOccurredCalls[t]);
             }
 
-            worstcallLossRate[loop]  = IOHelper.maxInArray(callLossRate);
-            avecallLossRate[loop]    = IOHelper.aveInArray(callLossRate);
-            sumcallLossRate[loop]    = IOHelper.sumInArray(callLossRate);
-            sumqtyLostCalls[loop]    = IOHelper.sumInArray(qtyLostCalls);
-            minMaxcallLossRate[loop] = IOHelper.minMaxInArray(callLossRate);
+            worstcallLossRate [loop] = Utility.maxInArray(callLossRate);
+            avecallLossRate   [loop] = Utility.aveInArray(callLossRate);
+            sumcallLossRate   [loop] = Utility.sumInArray(callLossRate);
+            sumqtyLostCalls   [loop] = Utility.sumInArray(qtyLostCalls);
+            minMaxcallLossRate[loop] = Utility.minMaxInArray(callLossRate);
 
-            output(loopNum, criterion, criNum, brokenLink, brokenBuilding, ammount, mag, outputMethod, hour, timeLength, timeDir, bldgs, callList, IOHelper, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
-            double loopDur = (System.nanoTime() - loopStartTime) * 1.0e-9;
-            System.out.println("limit-" + brokenBldglimit + ":loop-" + (loop + 1) + " time :" + loopDur);
+            output(loopNum, criterion, criNum, brokenLink, brokenBuilding, capMagWhenBroken, capMag, outputMethod, timeSteps, timeDir, bldgs, callList, IOHelper, loop, timeRegulation, ammountRegulation, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls, qtyDeletedCalls, callLossRate, avgHoldTime);
+            System.out.println("limit-" + brokenBldglimit + ":loop-" + (loop + 1) + " time :" + loopTimer.get());
         }
 
 
@@ -254,11 +248,10 @@ public class Main implements Runnable {
         }
 
 
-        calcTime = System.nanoTime() - calcTime;
-        System.out.println("計算時間：" + (calcTime * (Math.pow(10, -9))) + "s");
+        System.out.println("[limit:"+ brokenBldglimit +  "] calcTime：" + timer.get());
     }
 
-    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int hour, int timeLength, File timeDir, Network bldgs, CallList callList, IOHelper IOHelper, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
+    private void output(int loopNum, int criterion, int criNum, int[] brokenLink, String[] brokenBuilding, double ammount, int mag, int[] outputMethod, int timeLength, File timeDir, Network bldgs, CallList callList, IOHelper IOHelper, int loop, int timeRegulation, int ammountRegulation, int[] qtyExistingCalls, int[] qtyOccurredCalls, int[] qtyLostCalls, int[] qtyDeletedCalls, double[] callLossRate, double[] avgHoldTime) {
         // summary
         if (contain(outputMethod, 5)) {
             IOHelper.summaryOutput(timeDir, mag, brokenLink, brokenBuilding, ammount, timeRegulation, ammountRegulation, brokenBldglimit);
@@ -276,7 +269,7 @@ public class Main implements Runnable {
                 IOHelper.regulaitonMethodDevidedInitialize(criNum);
             }
 
-            IOHelper.regulationMethodDevided(hour, timeLength, timeDir, loop, mag, qtyExistingCalls,
+            IOHelper.regulationMethodDevided( timeLength, timeDir, loop, mag, qtyExistingCalls,
                     qtyOccurredCalls, qtyLostCalls, callLossRate, qtyDeletedCalls, avgHoldTime, loopNum, timeRegulation, ammountRegulation, criNum, bldgs.getBldgList());
         }
 
@@ -291,7 +284,7 @@ public class Main implements Runnable {
 
         //呼量の倍率を変えた場合＊破壊非破壊のパターン別データ
         if (contain(outputMethod, 2)) {
-            IOHelper.magDevidedOutput(hour, timeLength, timeDir, loop, mag, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls,
+            IOHelper.magDevidedOutput( timeLength, timeDir, loop, mag, qtyExistingCalls, qtyOccurredCalls, qtyLostCalls,
                     callLossRate, qtyDeletedCalls, avgHoldTime);
         }
 
@@ -430,10 +423,10 @@ public class Main implements Runnable {
         return timeDir;
     }
 
-    private static void simulation(int bldgNum, int minBrokenBldgLimit, int maxBrokenBldgLimit, int maxThreadsNum, File dateDir) {
+    private static void startSimulation(int bldgNum, int minBrokenBldgLimit, int maxBrokenBldgLimit, int maxThreadsNum, File dateDir) {
         ArrayDeque<Thread> threads = new ArrayDeque<>();
         Thread[] runThreads = new Thread[maxBrokenBldgLimit - minBrokenBldgLimit + 1];
-        ThreadGroup group = new ThreadGroup("simulation");
+        ThreadGroup group = new ThreadGroup("startSimulation");
 
         prepareThreads(bldgNum, minBrokenBldgLimit, maxBrokenBldgLimit, dateDir, threads, group);
 
@@ -485,7 +478,7 @@ public class Main implements Runnable {
         System.out.println("存在：" + i);
         System.out.println("deleted calls ..." + i2);
         // System.out.println("sumHoldTIme:" + Call.sumHoldTime[t]);
-        // System.out.println("call occur:" + qtyOccurredCalls[t]);
+        // System.out.println("call occurredCallsNum:" + qtyOccurredCalls[t]);
         System.out.println("average Holding Time:" + v1);
         System.out.println("passed time:" + ntime + "ns");
     }

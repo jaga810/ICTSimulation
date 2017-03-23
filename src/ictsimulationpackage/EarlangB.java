@@ -193,7 +193,7 @@ public class EarlangB {
                 clrList[h] = clList[h] / gcList[h];
 //                System.out.println(m + "倍: " + h + "時台:" + clList[h]);
             }
-            clrByMag.put(mag, IOHelper.maxInArray(clrList) * 100.0);
+            clrByMag.put(mag, Utility.maxInArray(clrList) * 100.0);
             System.out.println(mag + "倍: " +clrByMag.get(mag));
         }
         return clrByMag;
@@ -264,7 +264,7 @@ public class EarlangB {
                 clrList[h] = clList[h].divide(gcList[h], mal, BigDecimal.ROUND_HALF_UP);
 //                System.out.println(m + "倍: " + h + "時台:" + clList[h]);
             }
-            clrByMag.put(mag, IOHelper.maxInArray(clrList).multiply(BigDecimal.valueOf(100)));
+            clrByMag.put(mag, Utility.maxInArray(clrList).multiply(BigDecimal.valueOf(100)));
             System.out.println(mag + "倍: " +clrByMag.get(mag));
         }
         return clrByMag;

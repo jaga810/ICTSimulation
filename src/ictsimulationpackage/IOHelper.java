@@ -1,7 +1,6 @@
 package ictsimulationpackage;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -12,36 +11,30 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+/**
+ * 殆どリファクタリングしてない魔境なので書き直したほうが理解早い気がします
+ * 評価基準を変えてoutputできるようになってますが全ていっぺんに回したほうが楽なので分化は必要ないかも
+ */
 public class IOHelper {
+    //outputするルートとなるフォルダ
+    private static final String outputRootPath = Path.OUTPUT_PATH.get();
+
     //一日分のデータの保存
-      ArrayList<double[]> allCallLossRate = new ArrayList<>();
-      ArrayList<double[]> allCallLoss = new ArrayList<>();
+    private ArrayList<double[]> allCallLossRate = new ArrayList<>();
+    private ArrayList<double[]> allCallLoss = new ArrayList<>();
 
     //loop毎のデータの保存
-      ArrayList<Double> timePointList[];
-      ArrayList<Double> ammPointList[];
-      ArrayList<Double> bothPointList[];
-      ArrayList<Integer> brokenBldgNum = new ArrayList<>();
-      ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
+    private ArrayList<Double> timePointList[];
+    private ArrayList<Double> ammPointList[];
+    private ArrayList<Double> bothPointList[];
+    private ArrayList<Integer> brokenBldgNum = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> brokenBldgId = new ArrayList<>();
 
-    //limit毎のデータ保存。keyはbrokenBldgLimit
-    static HashMap<Integer,ArrayList<Double>[]> limitTimePointList = new HashMap();
-    static HashMap<Integer,ArrayList<Double>[]> limitAmmPointList  = new HashMap();
-    static HashMap<Integer,ArrayList<Double>[]> limitBothPointList = new HashMap();
+    //スレッド毎のデータ保存。keyはbrokenBldgLimit
+    private static HashMap<Integer, ArrayList<Double>[]> limitTimePointList = new HashMap();
+    private static HashMap<Integer, ArrayList<Double>[]> limitAmmPointList = new HashMap();
+    private static HashMap<Integer, ArrayList<Double>[]> limitBothPointList = new HashMap();
 
-    static void doubleArrayToExcel(double[] array, String path, String sheetName) {
-        File file = new File(path);
-        Workbook wb = new HSSFWorkbook();
-        wb = getWorkbook(file, wb);
-
-        Sheet sheet;
-        sheet = wb.createSheet(sheetName);
-        for (int i = 0; i < array.length; i++) {
-            sheet.createRow(i).createCell(0).setCellValue(array[i]);
-        }
-
-        output(file, wb);
-    }
 
     //与えられたfileにwbの内容をoutputするメソッド
     public static void output(File file, Workbook wb) {
@@ -60,7 +53,7 @@ public class IOHelper {
         }
     }
 
-      void areaDevidedKosu(File folder, int loop , CallList group) {
+    void areaDevidedKosu(File folder, int loop, CallList group) {
         String path = folder + "/areaDevidedKosu.xls";
         String sheetName = "areaKosu_" + loop;
         long array[] = group.getKosuInLocalRing();
@@ -118,7 +111,7 @@ public class IOHelper {
         return wb;
     }
 
-    public   void magDevidedOutput(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
+    public void magDevidedOutput(int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur, int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime) {
         String path = timedir + "/magDevidedOutput.xls";
         File file = new File(path);
         Workbook wb = new HSSFWorkbook();
@@ -135,7 +128,7 @@ public class IOHelper {
         Cell cell = row.createCell(0);
         cell.setCellValue("time");
         cell = row.createCell(1);
-        cell.setCellValue("occur");
+        cell.setCellValue("occurredCallsNum");
         cell = row.createCell(2);
         cell.setCellValue("lost");
         cell = row.createCell(3);
@@ -176,7 +169,7 @@ public class IOHelper {
         cell = row.createCell(0);
         cell.setCellValue("time");
         cell = row.createCell(1);
-        cell.setCellValue("occur");
+        cell.setCellValue("occurredCallsNum");
         cell = row.createCell(2);
         cell.setCellValue("lost");
         cell = row.createCell(3);
@@ -188,14 +181,14 @@ public class IOHelper {
         cell = row.createCell(6);
         cell.setCellValue("avg holding time");
 
-        double callOccurH[] = arrayIntoHour(callOccur);
-        double callLossH[] = arrayIntoHour(callLoss);
-        double callLossRateH[] = arrayIntoHourRate(callLossRate);
-        double callExistH[] = arrayIntoHour(callExist);
-        double callDeletedH[] = arrayIntoHour(callDeleted);
-        double avgHoldTimeH[] = arrayIntoHourRate(avgHoldTime);
+        double callOccurH[] = Utility.arrayIntoHour(callOccur);
+        double callLossH[] = Utility.arrayIntoHour(callLoss);
+        double callLossRateH[] = Utility.arrayIntoHourRate(callLossRate);
+        double callExistH[] = Utility.arrayIntoHour(callExist);
+        double callDeletedH[] = Utility.arrayIntoHour(callDeleted);
+        double avgHoldTimeH[] = Utility.arrayIntoHourRate(avgHoldTime);
 
-        for (int h = 0; h < hour; h++) {
+        for (int h = 0; h < Setting.SIMULATION_HOUR.get(); h++) {
             row = sheet.createRow(h + 1);
             row.createCell(0).setCellValue(h + 1);
             row.createCell(1).setCellValue(callOccurH[h]);
@@ -217,7 +210,7 @@ public class IOHelper {
         IOHelper.output(file, wb);
     }
 
-    public  void regulaitonMethodDevidedInitialize(int criNum) {
+    public void regulaitonMethodDevidedInitialize(int criNum) {
         timePointList = new ArrayList[criNum];
         ammPointList = new ArrayList[criNum];
         bothPointList = new ArrayList[criNum];
@@ -230,9 +223,9 @@ public class IOHelper {
 
     }
 
-    public void regulationMethodDevided(int hour, int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
-                                               int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
-                                               int timeRegulation, int ammountRegulation, int criNum, Building[] bldgList) {
+    public void regulationMethodDevided(int timeLength, File timedir, int loop, int mag, int[] callExist, int[] callOccur,
+                                        int[] callLoss, double[] callLossRate, int[] callDeleted, double[] avgHoldTime, int loopNum,
+                                        int timeRegulation, int ammountRegulation, int criNum, Building[] bldgList) {
 
         //通信規制の方針を比較する
         String path = timedir + "/regulationMethodDevidedOutput_" + (loop / 4) + ".xls";
@@ -252,7 +245,7 @@ public class IOHelper {
 //		cell = row.createCell(0);
 //		cell.setCellValue("time");
 //		cell = row.createCell(1);
-//		cell.setCellValue("occur");
+//		cell.setCellValue("occurredCallsNum");
 //		cell = row.createCell(2);
 //		cell.setCellValue("lost");
 //		cell = row.createCell(3);
@@ -296,7 +289,7 @@ public class IOHelper {
         cell = row.createCell(0);
         cell.setCellValue("time");
         cell = row.createCell(1);
-        cell.setCellValue("occur");
+        cell.setCellValue("occurredCallsNum");
         cell = row.createCell(2);
         cell.setCellValue("lost");
         cell = row.createCell(3);
@@ -309,14 +302,14 @@ public class IOHelper {
         cell.setCellValue("avg holding time");
 
 
-        double callOccurH[] = IOHelper.arrayIntoHour(callOccur);
-        double callLossH[] = IOHelper.arrayIntoHour(callLoss);
-        double callLossRateH[] = IOHelper.arrayIntoHourRate(callLossRate);
-        double callExistH[] = IOHelper.arrayIntoHour(callExist);
-        double callDeletedH[] = IOHelper.arrayIntoHour(callDeleted);
-        double avgHoldTimeH[] = IOHelper.arrayIntoHourRate(avgHoldTime);
+        double callOccurH[] = Utility.arrayIntoHour(callOccur);
+        double callLossH[] = Utility.arrayIntoHour(callLoss);
+        double callLossRateH[] = Utility.arrayIntoHourRate(callLossRate);
+        double callExistH[] = Utility.arrayIntoHour(callExist);
+        double callDeletedH[] = Utility.arrayIntoHour(callDeleted);
+        double avgHoldTimeH[] = Utility.arrayIntoHourRate(avgHoldTime);
 
-        for (int h = 0; h < hour; h++) {
+        for (int h = 0; h < Setting.SIMULATION_HOUR.get(); h++) {
             row = sheet.createRow(h + 1);
             row.createCell(0).setCellValue(h + 1);
             row.createCell(1).setCellValue(callOccurH[h]);
@@ -377,15 +370,15 @@ public class IOHelper {
                         difBothSum = 0;
                         //出力
                         row = sheet.createRow(1);
-                        row.createCell(0).setCellValue(maxInArray(rateNonReg));
-                        row.createCell(1).setCellValue(maxInArray(rateTimeReg));
-                        row.createCell(2).setCellValue(maxInArray(rateAmmReg));
-                        row.createCell(3).setCellValue(maxInArray(rateBothReg));
+                        row.createCell(0).setCellValue(Utility.maxInArray(rateNonReg));
+                        row.createCell(1).setCellValue(Utility.maxInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(Utility.maxInArray(rateAmmReg));
+                        row.createCell(3).setCellValue(Utility.maxInArray(rateBothReg));
 
                         //差分の導出
-                        timeDif = maxInArray(rateNonReg) - maxInArray(rateTimeReg);
-                        ammDif = maxInArray(rateNonReg) - maxInArray(rateAmmReg);
-                        bothDif = maxInArray(rateNonReg) - maxInArray(rateBothReg);
+                        timeDif = Utility.maxInArray(rateNonReg) - Utility.maxInArray(rateTimeReg);
+                        ammDif = Utility.maxInArray(rateNonReg) - Utility.maxInArray(rateAmmReg);
+                        bothDif = Utility.maxInArray(rateNonReg) - Utility.maxInArray(rateBothReg);
 
                         difTimeSum += timeDif;
                         difAmmSum += ammDif;
@@ -429,15 +422,15 @@ public class IOHelper {
 
                         //出力
                         row = sheet.createRow(1);
-                        row.createCell(0).setCellValue(aveInArray(rateNonReg));
-                        row.createCell(1).setCellValue(aveInArray(rateTimeReg));
-                        row.createCell(2).setCellValue(aveInArray(rateAmmReg));
-                        row.createCell(3).setCellValue(aveInArray(rateBothReg));
+                        row.createCell(0).setCellValue(Utility.aveInArray(rateNonReg));
+                        row.createCell(1).setCellValue(Utility.aveInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(Utility.aveInArray(rateAmmReg));
+                        row.createCell(3).setCellValue(Utility.aveInArray(rateBothReg));
 
                         //差分の導出
-                        timeDif = aveInArray(rateNonReg) - aveInArray(rateTimeReg);
-                        ammDif = aveInArray(rateNonReg) - aveInArray(rateAmmReg);
-                        bothDif = aveInArray(rateNonReg) - aveInArray(rateBothReg);
+                        timeDif = Utility.aveInArray(rateNonReg) - Utility.aveInArray(rateTimeReg);
+                        ammDif = Utility.aveInArray(rateNonReg) - Utility.aveInArray(rateAmmReg);
+                        bothDif = Utility.aveInArray(rateNonReg) - Utility.aveInArray(rateBothReg);
 
                         difTimeSum += timeDif;
                         difAmmSum += ammDif;
@@ -584,15 +577,15 @@ public class IOHelper {
 
                         //出力
                         row = sheet.createRow(1);
-                        row.createCell(0).setCellValue(minMaxInArray(rateNonReg));
-                        row.createCell(1).setCellValue(minMaxInArray(rateTimeReg));
-                        row.createCell(2).setCellValue(minMaxInArray(rateAmmReg));
-                        row.createCell(3).setCellValue(minMaxInArray(rateBothReg));
+                        row.createCell(0).setCellValue(Utility.minMaxInArray(rateNonReg));
+                        row.createCell(1).setCellValue(Utility.minMaxInArray(rateTimeReg));
+                        row.createCell(2).setCellValue(Utility.minMaxInArray(rateAmmReg));
+                        row.createCell(3).setCellValue(Utility.minMaxInArray(rateBothReg));
 
                         //差分の導出
-                        timeDif = minMaxInArray(rateNonReg) - minMaxInArray(rateTimeReg);
-                        ammDif = minMaxInArray(rateNonReg) - minMaxInArray(rateAmmReg);
-                        bothDif = minMaxInArray(rateNonReg) - minMaxInArray(rateBothReg);
+                        timeDif = Utility.minMaxInArray(rateNonReg) - Utility.minMaxInArray(rateTimeReg);
+                        ammDif = Utility.minMaxInArray(rateNonReg) - Utility.minMaxInArray(rateAmmReg);
+                        bothDif = Utility.minMaxInArray(rateNonReg) - Utility.minMaxInArray(rateBothReg);
 
                         difTimeSum += timeDif;
                         difAmmSum += ammDif;
@@ -646,7 +639,7 @@ public class IOHelper {
     }
 
 
-    public void  summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
+    public void summaryOutput(File timedir, int mag, int[] brokenLink, String[] brokenBuilding, double ammount, int timeReg, int amReg, int limit) {
 //        Building[] list = Network.bldgList;
         try {
             File file = new File(timedir + "/summary.txt");
@@ -761,7 +754,14 @@ public class IOHelper {
         IOHelper.output(file, wb);
     }
 
-     public synchronized void regulationPointOutput(File folder, int criNum, Network bldgs, int brokenBldgLimit) {
+    /**
+     *
+     * @param folder
+     * @param criNum
+     * @param bldgs
+     * @param brokenBldgLimit
+     */
+    public synchronized void regulationPointOutput(File folder, int criNum, Network bldgs, int brokenBldgLimit) {
         //ファイルの作成
         String fileName = folder + "/regulationPointOutput.xls";
         File file = new File(fileName);
@@ -836,20 +836,19 @@ public class IOHelper {
 
         //limit毎の記録
         ArrayList<Double> cpTimeList[] = new ArrayList[timePointList.length];
-        ArrayList<Double> cpAmmList[] =  new ArrayList[timePointList.length];
+        ArrayList<Double> cpAmmList[] = new ArrayList[timePointList.length];
         ArrayList<Double> cpBothList[] = new ArrayList[timePointList.length];
 
-        for(int i =0 ;i < timePointList.length;i++) {
+        for (int i = 0; i < timePointList.length; i++) {
             cpTimeList[i] = new ArrayList(timePointList[i]);
-            cpAmmList[i] =  new ArrayList(ammPointList[i]);
+            cpAmmList[i] = new ArrayList(ammPointList[i]);
             cpBothList[i] = new ArrayList(bothPointList[i]);
         }
 
 
-
-        limitTimePointList.put(brokenBldgLimit,cpTimeList);
-        limitAmmPointList.put(brokenBldgLimit,cpAmmList);
-        limitBothPointList.put(brokenBldgLimit,cpBothList);
+        limitTimePointList.put(brokenBldgLimit, cpTimeList);
+        limitAmmPointList.put(brokenBldgLimit, cpAmmList);
+        limitBothPointList.put(brokenBldgLimit, cpBothList);
 
         //初期化
         allCallLossRate.clear();
@@ -863,12 +862,17 @@ public class IOHelper {
         }
     }
 
-    public static synchronized void  limitRegulationPoint(File folder, int minBrokenBldgNum,int maxBrokenBldgNum) {
+    /**
+     * 首都直下型地震シナリオ使用時におけるビル破壊数別の規制効果を、各種評価基準を使用してアウトプットするために使う
+     * @param minBrokenBldgNum
+     * @param maxBrokenBldgNum
+     */
+    public static void limitRegulationPoint(File dateDir,int minBrokenBldgNum, int maxBrokenBldgNum) {
         //ファイルの作成
         Calendar cl = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
         String time = sdf.format(cl.getTime());
-        String fileName = folder + "/pointOutputSummary_"+time+".xls";
+        String fileName = getTimeDir(dateDir) + "pointOutputSummary_" + time + ".xls";
         File file = new File(fileName);
         Workbook wb = new HSSFWorkbook();
         wb = IOHelper.getWorkbook(file, wb);
@@ -882,7 +886,7 @@ public class IOHelper {
         sheets[4] = wb.createSheet("minMaxCLR");
 
         //シートのカラム名の追加
-        for(int i = 0; i < sheets.length;i++) {
+        for (int i = 0; i < sheets.length; i++) {
             Row r = sheets[i].createRow(0);
             r.createCell(0).setCellValue("timePoint");
             r.createCell(1).setCellValue("ammPoint");
@@ -901,10 +905,10 @@ public class IOHelper {
             for (int c = 0; c < criterionNum; c++) {
                 Sheet s = sheets[c];
                 ArrayList<Double> timeList = limitTimePointList.get(l)[c];
-                ArrayList<Double> ammList  =  limitAmmPointList.get(l)[c];
+                ArrayList<Double> ammList = limitAmmPointList.get(l)[c];
                 ArrayList<Double> bothList = limitBothPointList.get(l)[c];
 
-                for(int i = 0;i < timeList.size();i++) {
+                for (int i = 0; i < timeList.size(); i++) {
                     Row r = s.createRow(startRow + i);
                     r.createCell(0).setCellValue(timeList.get(i));
                     r.createCell(1).setCellValue(ammList.get(i));
@@ -913,138 +917,25 @@ public class IOHelper {
                 }
             }
         }
-        output(file,wb);
+        output(file, wb);
     }
 
-    static double[] arrayIntoHour(double[] array) {
-        int hour = array.length / 60;
-        double val[] = new double[hour];
-        for (int h = 0; h < hour; h++) {
-            for (int i = 0; i < 60; i++) {
-                int index = 60 * h + i;
-                val[h] += array[index];
-            }
-        }
-        return val;
-    }
-
-    static double[] arrayIntoHour(int[] array) {
-        int hour = array.length / 60;
-        double val[] = new double[hour];
-        for (int h = 0; h < hour; h++) {
-            for (int i = 0; i < 60; i++) {
-                int index = 60 * h + i;
-                val[h] += array[index];
-            }
-        }
-        return val;
-    }
-
-    static double[] arrayIntoHourRate(double[] array) {
-        int hour = array.length / 60;
-        double val[] = new double[hour];
-        for (int h = 0; h < hour; h++) {
-            for (int i = 0; i < 60; i++) {
-                int index = 60 * h + i;
-                val[h] += array[index];
-            }
-            val[h] /= 60;
-        }
-        return val;
-    }
-
-    public static double maxInArray(double[] array) {
-        if (array.length == 0) {
-            return 0;
-        }
-        double val = 0;
-        for (int i = 0; i < array.length; i++) {
-            if (val < array[i]) {
-                val = array[i];
-            }
-        }
-        return val;
-    }
-
-    public static BigDecimal maxInArray(BigDecimal[] array) {
-        if (array.length == 0) {
-            return BigDecimal.ZERO;
-        }
-        BigDecimal val = BigDecimal.ZERO;
-
-        for (int i = 0; i < array.length; i++) {
-            if (val.compareTo(array[i]) < 0) {
-                val = array[i];
-            }
-        }
-        return val;
-    }
-
-    public static double minInArray(double[] array) {
-        if (array.length == 0) {
-            return 0;
-        }
-        double val = Double.MAX_VALUE;
-        for (int i = 0; i < array.length; i++) {
-            if (val > array[i]) {
-                val = array[i];
-            }
-        }
-        return val;
-    }
-
-    public static double aveInArray(double[] array) {
-        if (array.length == 0) {
-            return 0;
-        }
-        double sum = sumInArray(array);
-
-        return sum / array.length;
-    }
-
-    public static double sumInArray(double[] array) {
-        if (array.length == 0) {
-            return 0;
-        }
-        double sum = 0;
-        for (int i = 0; i < array.length; i++) {
-            sum += array[i];
-        }
-        return sum;
-    }
-
-    public static int sumInArray(int[] array) {
-        if (array.length == 0) {
-            return 0;
-        }
-        int sum = 0;
-        for (int i = 0; i < array.length; i++) {
-            sum += array[i];
-        }
-        return sum;
-    }
-
-    public static double minMaxInArray(double array[]) {
-        if (array.length == 0) {
-            return 0;
-        }
-
-        return maxInArray(array) - minInArray(array);
-    }
-
+    /**
+     * output用のDateディレクトリを作成する
+     * ex) $outputDir/2017_0210/
+     * プロジェクトのアウトプットディクレトリ下の日付ディレクトリ(2017_0210)
+     * 既にディレクトリが存在する場合は作成しない
+     *
+     * @return
+     */
     public static File getDateDir() {
-        //outputするルートとなるフォルダ
-        final String outputRootFolder = "/Users/jaga/Documents/domain_project/output/";
-
         /**出力関連**/
         Calendar c = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MMdd");
         String date = sdf.format(c.getTime());
-        sdf = new SimpleDateFormat("HH_mm_ss");
-
 
         // date階層のdirectoryの作成（当日に既に実行している場合はエスケープ）
-        String folder = outputRootFolder + "/" + date;// root/yyyy_MMdd/hh_mm_ss/
+        String folder = outputRootPath + date;// root/yyyy_MMdd/hh_mm_ss/
         File datedir = new File(folder);
 
         if (!datedir.exists()) {
@@ -1054,6 +945,15 @@ public class IOHelper {
         return datedir;
     }
 
+    /**
+     * output用のTimeディレクトリを作成する
+     * ex) $outputDir/2017_0210/11_52_43
+     * プロジェクトのアウトプットディクレトリ下の日付ディレクトリ(2017_0210)
+     * の下に(11_54_43) 11h52m43sのようなディレクトリを作成してFileオブジェクトを返す
+     * ディレクトリが存在する場合は作成しない
+     *
+     * @return
+     */
     public static File getTimeDir() {
         // ファイル出力
         Calendar c = Calendar.getInstance();
@@ -1067,15 +967,60 @@ public class IOHelper {
         return timedir;
     }
 
+    /**
+     * dateDirを指定してtimeDirを作成
+     * @param dateDir
+     * @return
+     */
+    public static File getTimeDir(File dateDir) {
+        // ファイル出力
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss");
+        String time = sdf.format(c.getTime());
+
+        File timedir = new File(dateDir + "/" + time + "/");
+        if (!timedir.exists()) {
+            timedir.mkdir();
+        }
+        return timedir;
+    }
+
+    /**
+     * pathに存在するエクセルファイルをXSSFWorkbook型のオブジェクトに読み込む
+     *
+     * @param path 絶対パス
+     * @return パスのエクセルファイルが存在しなければnull
+     */
     public static XSSFWorkbook importExcelToWorkBook(String path) {
         XSSFWorkbook book = null;
         try {
             FileInputStream f = new FileInputStream(path);
             book = new XSSFWorkbook(f);
             f.close();
-        }  catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return book;
+    }
+
+    /**
+     * Double型の配列をExcelに一行ずつ出力する
+     *
+     * @param array     出力するDouble型配列
+     * @param path      Excelを出力するパス
+     * @param sheetName シートの名前
+     */
+    public static void doubleArrayToExcel(double[] array, String path, String sheetName) {
+        File file = new File(path);
+        Workbook wb = new HSSFWorkbook();
+        wb = getWorkbook(file, wb);
+
+        Sheet sheet;
+        sheet = wb.createSheet(sheetName);
+        for (int i = 0; i < array.length; i++) {
+            sheet.createRow(i).createCell(0).setCellValue(array[i]);
+        }
+
+        output(file, wb);
     }
 }

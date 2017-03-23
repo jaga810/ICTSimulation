@@ -3,18 +3,23 @@ package ictsimulationpackage;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-public class Settings {
-    static final String dataPath = "/Users/jaga/Documents/domain_project/data/";
+public class BuildingCollector {
+    static final String dataPath = Path.DATA_PATH.get();
 	static final String sheetName[] = { "練馬区内中継リンク", "荏原区内中継リンク", "墨田区内中継リンク" };
-	static final int localRingNum = 3;
-    static final int bldgNum = 102;
+	static final int localRingNum = Setting.LOCAL_RING_NUM.get();
+    static final int bldgNum = Setting.BUILDING_NUM.get();
 
-	static BuildingInfo[] BldgInfo() {
+    /**
+     * ビルの名前とIDを読み込む
+     * @return
+     */
+	public static BuildingInfo[] loadBldgInfo() {
         BuildingInfo info[] = new BuildingInfo[bldgNum];
         XSSFWorkbook book = null;
 
@@ -47,7 +52,12 @@ public class Settings {
         return info;
     }
 
-	static double[] getScale(Network bldgList) {
+    /**
+     * networkに含まれるbldgに震度データを読み込む
+     * @param network
+     * @return
+     */
+	public static double[] loadScale(Network network) {
 		double[] scale = new double[bldgNum];
 		try {
 			FileInputStream fi = new FileInputStream(dataPath + "scale_data.xls");
@@ -66,7 +76,7 @@ public class Settings {
 					//各行についてmeshcodeを取得し書き込み
 					row = sheet.getRow(r);
 					String bname = row.getCell(0).getStringCellValue();
-					int idx = bldgList.findBldg(bname).getBid();
+					int idx = network.findBldg(bname).getBid();
 					double val = row.getCell(6).getNumericCellValue();
 					scale[idx] = val;
 				}
@@ -79,7 +89,11 @@ public class Settings {
 		return scale;
 	}
 
-    static void importExcelData(Network network) {
+    /**
+     * トラフィックデータの読み込みを行い、Bulidingオブジェクトのkosuにセットする
+     * @param network
+     */
+    public static void loadTraffic(Network network) {
         Building[] list = sortBldgList(network);
         Building kugai = network.getKugaiBldg();
         int bldgNumIncKugai = bldgNum + 2;

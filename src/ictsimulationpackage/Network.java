@@ -15,7 +15,7 @@ public class Network {
     private final int kugaiRelayBldgId = 0;
 
 	//データ読み込み
-	private BuildingInfo bldgInfo[] = Settings.BldgInfo();
+	private BuildingInfo bldgInfo[] = BuildingCollector.loadBldgInfo();
 	private double[] scale;
 
 	//various building lists
@@ -59,7 +59,7 @@ public class Network {
 		makeLinkIndex();
 
 		//kosuの読み込み
-		Settings.importExcelData(this);
+		BuildingCollector.loadTraffic(this);
 	}
 
     /**
@@ -258,7 +258,7 @@ public class Network {
 	}
 
     public void getScale() {
-        scale = Settings.getScale(this);
+        scale = BuildingCollector.loadScale(this);
     }
 
     public Building getKugaiBldg() {

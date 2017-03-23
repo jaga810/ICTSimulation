@@ -5,9 +5,6 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -15,19 +12,17 @@ import java.util.Arrays;
  * メッシュコードから各中継ビルの震度分布をエクセルデータとして出力する
  */
 public class MeshCode {
-    private static final String dataPath = "/Users/jaga/Documents/domain_project/data/";
+    private static final String dataPath = Path.DATA_PATH.get();
 
     public static void main(String args[]) {
-//        get();
-//        getLatMesh(35.7007777);
-//        getLonMesh(139.71475);
-//        getMeshCode(139.802784, 35.369137);
-        makeMeshCode();
+        makeScaleExcelWithBldg();
     }
 
-    public static void makeMeshCode() {
+    public static void makeScaleExcelWithBldg() {
         Pair scale[] = getScaleData();
-        XSSFWorkbook book = IOHelper.importExcelToWorkBook(dataPath + "building_for_qgis_2.xlsx");
+        XSSFWorkbook book = IOHelper.importExcelToWorkBook(
+                dataPath + "building_for_qgis_2.xlsx" //中継ビルに対する緯度経度
+        );
         for (int s = 2; s <= 4; s++) {
             //シートの取得
             Sheet sheet;

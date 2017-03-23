@@ -4,20 +4,20 @@ import java.util.HashMap;
 
 /**
  * 中継ビル
- * スレッド毎にBuildingListオブジェクトをもち、各BuildingListオブジェクトが
+ * スレッド毎にNetwork型オブジェクトをもち、各Networkオブジェクトが
  * 103のBuildingオブジェクトを持つ
  */
 public class Building {
 
     private int bid;
     private String bname;
-    private Building kunaiRelayBuilding;//中継ビル
+    private Building kunaiRelayBuilding = null;//中継ビル
     private boolean broken = false;
 
     //呼数の分布 kosu.get[h](Building) = Buildingへのh時間帯での呼数分布(区外ビルの場合は多摩地区からの呼量)
-    //          kosutTaken.get[h](Building) = 他県へのh時間帯での呼数分布
-    private HashMap<Building, Double> kosu[] = new HashMap[24];
-    private HashMap<Building, Double> kosuTaken[] = new HashMap[24];
+    //          kosutTaken.get[h](dest) = 他県からdestへのh時間帯での呼数分布
+    private HashMap<Building, Double> kosu[]      = new HashMap[Setting.SIMULATION_HOUR.get()];
+    private HashMap<Building, Double> kosuTaken[] = new HashMap[Setting.SIMULATION_HOUR.get()];
 
     //ローカルリング
     private Link linkR;
@@ -38,38 +38,23 @@ public class Building {
     private double latitude;
     private double longitude;
 
-    Building() {
-        //BuildingListクラスで空のBuildingオブジェクトを使うため
-    }
-
     Building(String bname, int bid) {
         //区外ビル作成用
         this.bname = bname;
         this.bid = bid;
-        this.kunaiRelayBuilding = null;
-
-        Utility.initHashMap(kosu);
-        Utility.initHashMap(kosuTaken);
-    }
-
-
-    Building(int bid,  String bname) {
-        this.bid = bid;
-        this.bname = bname;
 
         Utility.initHashMap(kosu);
         Utility.initHashMap(kosuTaken);
     }
 
     Building(BuildingInfo info) {
+        //区内ビル作成用
         this.bid = info.getBid();
         this.bname = info.getBname();
 
         Utility.initHashMap(kosu);
         Utility.initHashMap(kosuTaken);
     }
-
-    //時間、目的地、普段と比べたトラフィックの倍率を引数として発生呼数を返す
 
     /**
      * このオブジェクトのビルから、destビルへのtime時におけるトラフィックを取得
@@ -85,15 +70,16 @@ public class Building {
         int hour = time / 60 % 24;
         double kosu = this.kosu[hour].get(dest);
         if (isKugai()) {
-            double kosuTaken = this.kosu[hour].get(dest);
+            //区外オブジェクト以外で呼び出すとエラーが出るので注意
+            double kosuTaken = this.kosuTaken[hour].get(dest);
+
             //多摩地区発信のトラフィック
-            traffic = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
+            traffic =  CallUtility.occurredCallsNum(kosu * mag / 60);
 
             //県外発信のトラフィック
-            traffic += OccurrenceOfCalls.Occurrence(kosuTaken * mag / 60);
-
+            traffic += CallUtility.occurredCallsNum(kosuTaken * mag / 60);
         } else {
-            traffic = OccurrenceOfCalls.Occurrence(kosu * mag / 60);
+            traffic =  CallUtility.occurredCallsNum(kosu * mag / 60);
         }
         return traffic;
     }
@@ -138,22 +124,6 @@ public class Building {
         }
     }
 
-    /**
-     * bldgをthisビルの右側に追加する
-     * bldgListでモデルを構築する際に使用
-     * @param bldg
-     */
-    public void insertBldgR(Building bldg) {
-        //this -> (bldg) -> bldgR
-        //bldgの右をbldgRに, 左をthisに
-        bldg.setBldgR(bldgR);
-        bldg.setBldgL(this);
-        //bldgRの左をbldgに
-        bldgR.setBldgL(bldg);
-        //thisの右をbldgに
-        setBldgR(bldg);
-    }
-
     public void setLinkFor2Bldgs(Link ln) {
         setLinkR(ln);
         bldgR.setLinkL(ln);
@@ -167,15 +137,10 @@ public class Building {
         broken = false;
     }
 
-    /**getterとsetter*/
+    /** getterとsetter */
 
     public void setKunaiRelayBuilding(Building bldg) {
         kunaiRelayBuilding = bldg;
-    }
-
-    public void setKunaiBldgs(Building r, Building l) {
-        kunaiBldgR = r;
-        kunaiBldgL = l;
     }
 
     public void setKunaiBldgR(Building bldg) {
@@ -185,7 +150,6 @@ public class Building {
     public void setKunaiBldgL(Building bldg) {
         kunaiBldgL  = bldg;
     }
-
 
     public Building getBldgR() {
         return bldgR;
@@ -275,6 +239,9 @@ public class Building {
         return kunaiRelayBuilding;
     }
 
+    public HashMap<Building, Double> getKosu(int t) {
+        return kosu[t];
+    }
 
     /** ビルの状態に関するbool値 */
     public boolean isKugai() {
@@ -310,11 +277,6 @@ public class Building {
     }
 
     /**etc*/
-
-    public HashMap<Building, Double> getKosu(int t) {
-        return kosu[t];
-    }
-
     void setGisData(double la, double lon) {
         latitude = la;
         longitude = lon;
